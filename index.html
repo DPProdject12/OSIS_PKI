@@ -1,0 +1,3403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameOS Lab — практикум по ОС для разработки игр</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e1a;
+  --panel: #141a2e;
+  --panel-2: #1e2744;
+  --accent: #00d9ff;
+  --accent-2: #00b8d9;
+  --success: #00e676;
+  --danger: #ff3d71;
+  --warning: #ffaa00;
+  --purple: #b388ff;
+  --text: #e4e9f7;
+  --muted: #7c89a8;
+  --gpu: #76ff03;
+  --cpu: #ff6b6b;
+  --frame: #ffd93d;
+}
+
+body.light {
+  --bg: #f0f4fa;
+  --panel: #ffffff;
+  --panel-2: #dce4f0;
+  --text: #0f172a;
+  --muted: #64748b;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background .3s, color .3s;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(0,217,255,.08), transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(179,136,255,.08), transparent 40%);
+  background-attachment: fixed;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent-2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.logo { font-size: 20px; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.logo::before { content: "🎮"; font-size: 22px; }
+
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab {
+  background: transparent;
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: .2s;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+.tab:hover { background: var(--panel-2); border-color: var(--accent-2); }
+.tab.active { background: var(--accent-2); border-color: var(--accent); color: #000; font-weight: 700; }
+
+.user-info { display: flex; align-items: center; gap: 8px; }
+#progressBadge {
+  background: linear-gradient(135deg, var(--accent-2), var(--purple));
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #000;
+  font-size: 13px;
+}
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: .2s;
+}
+.icon-btn:hover { background: var(--panel-2); border-color: var(--accent); }
+
+main { flex: 1; padding: 24px; max-width: 1500px; width: 100%; margin: 0 auto; }
+.panel { display: none; animation: fade .3s; }
+.panel.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+h2 { margin-bottom: 16px; color: var(--accent); font-weight: 700; }
+h3 { margin: 24px 0 12px; color: var(--text); font-weight: 600; }
+h4 { font-weight: 600; }
+.hint { color: var(--muted); margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+
+.student-info {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--panel-2);
+}
+@media (max-width: 600px) { .student-info { grid-template-columns: 1fr; } }
+.student-info label {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 12px; color: var(--muted);
+  text-transform: uppercase; font-weight: 600; letter-spacing: .5px;
+}
+.student-info input {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--panel-2);
+  padding: 10px 12px; border-radius: 6px; font-size: 14px;
+}
+.student-info input:focus { outline: 2px solid var(--accent-2); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+}
+.stat-value { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+
+.progress-bar-wrap {
+  height: 10px;
+  background: var(--panel);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid var(--panel-2);
+}
+.progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent-2), var(--purple));
+  transition: width .5s;
+  box-shadow: 0 0 10px rgba(0,217,255,.5);
+}
+
+.achievements {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.ach-card {
+  background: var(--panel);
+  padding: 14px;
+  border-radius: 8px;
+  text-align: center;
+  opacity: .35;
+  transition: .3s;
+  border: 1px solid var(--panel-2);
+}
+.ach-card.unlocked {
+  opacity: 1;
+  border-color: var(--warning);
+  box-shadow: 0 0 15px rgba(255,170,0,.3);
+}
+.ach-icon { font-size: 30px; }
+.ach-name { font-size: 12px; margin-top: 6px; }
+
+.journal {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.journal th, .journal td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--panel-2);
+}
+.journal th { background: var(--panel-2); font-size: 12px; text-transform: uppercase; color: var(--muted); }
+
+.btn {
+  background: var(--panel-2);
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 9px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: .2s;
+  font-family: inherit;
+  font-weight: 600;
+}
+.btn:hover { background: #2a3352; color: #fff; }
+.btn.primary { background: var(--accent-2); color: #000; border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent); box-shadow: 0 0 15px rgba(0,217,255,.4); }
+.btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn.success { background: var(--success); color: #000; border-color: var(--success); }
+.btn.warning { background: var(--warning); color: #000; border-color: var(--warning); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.actions { margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ============== ANSWER TASKS ============== */
+.answer-block {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 14px 0;
+}
+.answer-block h4 {
+  color: var(--accent);
+  font-size: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.answer-block h4 .weight {
+  background: var(--panel-2);
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.answer-task {
+  background: var(--bg);
+  border: 1px solid var(--panel-2);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
+  transition: border-color .3s;
+}
+.answer-task.correct { border-color: var(--success); background: rgba(0,230,118,.06); }
+.answer-task.wrong { border-color: var(--danger); background: rgba(255,61,113,.06); }
+.answer-task.locked { opacity: .85; }
+
+.answer-task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.answer-task-header .num {
+  background: var(--accent);
+  color: #000;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.answer-task-header .q-text { flex: 1; line-height: 1.5; }
+.answer-task-header .status {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.answer-task-header .status.ok { background: var(--success); color: #000; }
+.answer-task-header .status.bad { background: var(--danger); color: #fff; }
+
+.answer-task input[type="text"],
+.answer-task input[type="number"],
+.answer-task textarea,
+.answer-task select {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-family: inherit;
+  resize: vertical;
+}
+.answer-task textarea { min-height: 70px; }
+.answer-task input:focus, .answer-task textarea:focus, .answer-task select:focus {
+  outline: 2px solid var(--accent-2);
+}
+.answer-task input:disabled, .answer-task textarea:disabled, .answer-task select:disabled {
+  opacity: .7; cursor: not-allowed;
+}
+.answer-task .char-counter {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-align: right;
+}
+.answer-task .answer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.answer-task .hint-btn {
+  background: transparent;
+  border: 1px solid var(--panel-2);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+.answer-task .hint-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.answer-task .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.answer-task .chip {
+  padding: 6px 12px;
+  border: 1px solid var(--panel-2);
+  border-radius: 99px;
+  background: var(--panel);
+  cursor: pointer;
+  font-size: 12.5px;
+  user-select: none;
+  transition: all .15s;
+}
+.answer-task .chip:hover { border-color: var(--accent); }
+.answer-task .chip.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.answer-task .chip.correct { background: var(--success); color: #000; border-color: var(--success); }
+.answer-task .chip.wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+.answer-task .chip:disabled { cursor: not-allowed; opacity: .85; }
+
+/* ============== MODAL ANSWER ============== */
+.answer-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10,14,26,.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500; padding: 20px;
+  backdrop-filter: blur(8px);
+}
+.answer-modal-backdrop.hidden { display: none; }
+.answer-modal {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 520px;
+  width: 100%;
+  border-top: 4px solid var(--danger);
+  box-shadow: 0 20px 80px rgba(0,0,0,.6);
+  animation: pop .3s;
+}
+@keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.answer-modal.correct { border-top-color: var(--success); }
+.answer-modal h3 {
+  font-size: 18px;
+  margin-bottom: 14px;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.answer-modal.correct h3 { color: var(--success); }
+.answer-modal .modal-label {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+.answer-modal .modal-value {
+  background: var(--bg);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 13.5px;
+  color: var(--text);
+  word-break: break-word;
+}
+.answer-modal .modal-value.correct-value {
+  color: var(--success);
+  border: 1px solid var(--success);
+  background: rgba(0,230,118,.08);
+}
+.answer-modal .modal-value.wrong-value {
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  background: rgba(255,61,113,.08);
+}
+.answer-modal .explanation {
+  background: rgba(0,217,255,.08);
+  border-left: 3px solid var(--accent);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 14px;
+}
+.answer-modal .modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+/* ============== TOPICS / MISC ============== */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.info-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: .3s;
+}
+.info-card:hover { border-left-color: var(--accent-2); transform: translateX(2px); }
+.info-card h4 { color: var(--accent); font-size: 14px; margin-bottom: 8px; }
+.info-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.info-card code {
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  padding: 16px 18px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: .2s;
+}
+.topic-header:hover { background: var(--panel-2); border-color: var(--accent-2); }
+.topic-num {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent-2), var(--purple));
+  color: #000;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px;
+  flex-shrink: 0;
+}
+.topic-title { flex: 1; font-size: 15px; font-weight: 700; }
+.topic-badge {
+  font-size: 11px; padding: 4px 10px; border-radius: 6px;
+  background: var(--panel-2); color: var(--muted); font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.topic-badge.done { background: var(--success); color: #000; }
+.topic-badge.partial { background: var(--warning); color: #000; }
+.topic-body { display: none; padding: 0 4px 14px; }
+.topic-body.open { display: block; }
+
+/* ============== SIMULATORS (existing) ============== */
+.frame-dashboard {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1000px) { .frame-dashboard { grid-template-columns: 1fr; } }
+.frame-budget {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+}
+.frame-budget h4 {
+  color: var(--accent);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.budget-slider { margin-bottom: 14px; }
+.budget-slider label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 600;
+}
+.budget-slider label span { color: var(--text); font-weight: 700; }
+.budget-slider input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  outline: none;
+}
+.budget-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,217,255,.6);
+}
+.frame-visual {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+}
+.frame-timeline {
+  height: 80px;
+  background: var(--bg);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--panel-2);
+}
+.frame-bar {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #000;
+  transition: all .3s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.frame-bar.render { background: linear-gradient(180deg, var(--gpu), #4caf50); }
+.frame-bar.physics { background: linear-gradient(180deg, var(--cpu), #d32f2f); color: #fff; }
+.frame-bar.ai { background: linear-gradient(180deg, var(--purple), #7c4dff); color: #fff; }
+.frame-bar.audio { background: linear-gradient(180deg, var(--warning), #f57c00); }
+.frame-bar.io { background: linear-gradient(180deg, var(--muted), #546e7a); color: #fff; }
+.frame-marker {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--danger);
+  z-index: 10;
+  box-shadow: 0 0 8px var(--danger);
+}
+.frame-marker::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -22px; left: -30px;
+  font-size: 10px;
+  color: var(--danger);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.frame-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+.frame-stat {
+  background: var(--bg);
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+.frame-stat .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.frame-stat .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+.frame-stat .value.ok { color: var(--success); }
+.frame-stat .value.warn { color: var(--warning); }
+.frame-stat .value.bad { color: var(--danger); }
+
+.thread-sim {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.thread-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--panel-2);
+  transition: .3s;
+}
+.thread-row.hogging { border-color: var(--danger); box-shadow: 0 0 12px rgba(255,61,113,.3); }
+.thread-name { font-weight: 700; font-size: 13px; }
+.thread-name small { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+.thread-priority-btns { display: flex; gap: 4px; }
+.thread-priority-btns button {
+  background: var(--panel-2);
+  border: 1px solid var(--panel-2);
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  transition: .2s;
+  font-family: inherit;
+}
+.thread-priority-btns button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+.thread-priority-btns button:hover { border-color: var(--accent); }
+.thread-cpu { font-family: 'Consolas', monospace; font-weight: 700; font-size: 14px; text-align: right; }
+.thread-cpu.ok { color: var(--success); }
+.thread-cpu.warn { color: var(--warning); }
+.thread-cpu.bad { color: var(--danger); }
+.fps-meter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg);
+  padding: 14px 20px;
+  border-radius: 10px;
+  margin-top: 14px;
+  border: 1px solid var(--panel-2);
+}
+.fps-number {
+  font-size: 42px;
+  font-weight: 900;
+  font-family: 'Consolas', monospace;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+.fps-number.good { color: var(--success); text-shadow: 0 0 20px rgba(0,230,118,.5); }
+.fps-number.warn { color: var(--warning); text-shadow: 0 0 20px rgba(255,170,0,.5); }
+.fps-number.bad { color: var(--danger); text-shadow: 0 0 20px rgba(255,61,113,.5); }
+.fps-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.fps-verdict { font-size: 13px; color: var(--muted); margin-left: auto; text-align: right; max-width: 320px; }
+
+.load-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 800px) { .load-grid { grid-template-columns: 1fr; } }
+.load-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+}
+.load-panel h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.load-panel.gpu h4 { color: var(--gpu); }
+.load-panel.cpu h4 { color: var(--cpu); }
+.load-canvas {
+  width: 100%;
+  height: 140px;
+  background: var(--bg);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--panel-2);
+}
+.load-bar {
+  position: absolute;
+  bottom: 0;
+  width: 4%;
+  border-radius: 2px 2px 0 0;
+  transition: height .3s, background .3s;
+}
+.load-panel.gpu .load-bar { background: linear-gradient(180deg, var(--gpu), #33691e); }
+.load-panel.cpu .load-bar { background: linear-gradient(180deg, var(--cpu), #b71c1c); }
+.load-value {
+  font-family: 'Consolas', monospace;
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+.load-panel.gpu .load-value { color: var(--gpu); }
+.load-panel.cpu .load-value { color: var(--cpu); }
+
+.latency-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.latency-chain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.latency-hop {
+  background: var(--bg);
+  border: 1px solid var(--panel-2);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: .3s;
+}
+.latency-hop:hover { border-color: var(--accent); transform: translateY(-2px); }
+.latency-hop small { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.latency-arrow { color: var(--muted); font-size: 14px; }
+.latency-bar {
+  display: flex;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 14px 0;
+  border: 1px solid var(--panel-2);
+}
+.latency-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+  min-width: 0;
+  transition: .3s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cache-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.cache-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin: 14px 0;
+}
+.cache-slot {
+  aspect-ratio: 1;
+  background: var(--bg);
+  border: 2px solid var(--panel-2);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: .3s;
+}
+.cache-slot.hit { background: var(--success); color: #000; border-color: var(--success); box-shadow: 0 0 12px rgba(0,230,118,.6); }
+.cache-slot.miss { background: var(--warning); color: #000; border-color: var(--warning); }
+.cache-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.cache-stat {
+  background: var(--bg);
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cache-stat b { display: block; font-size: 18px; color: var(--text); margin-bottom: 2px; }
+
+/* ПРОЦЕССЫ */
+.proc-toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 14px; background: var(--panel); padding: 12px; border-radius: 10px;
+  border: 1px solid var(--panel-2);
+}
+.proc-toolbar label {
+  font-size: 12px; color: var(--muted);
+  display: flex; flex-direction: column; gap: 4px;
+  text-transform: uppercase; font-weight: 600; letter-spacing: .5px;
+}
+.proc-toolbar select, .proc-toolbar input {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--panel-2);
+  padding: 7px 10px; border-radius: 6px; font-size: 13px; font-family: inherit;
+}
+.proc-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 14px;
+}
+@media (max-width: 1000px) { .proc-layout { grid-template-columns: 1fr; } }
+.proc-tree {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 14px;
+  font-family: 'Consolas', monospace;
+  font-size: 12.5px;
+  line-height: 1.9;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.proc-node {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 6px; border-radius: 4px;
+  cursor: pointer; transition: .2s;
+}
+.proc-node:hover { background: var(--panel-2); }
+.proc-node.selected { background: var(--accent-2); color: #000; }
+.proc-node .indent { color: var(--muted); }
+.proc-node .pid { color: var(--warning); font-weight: 700; }
+.proc-node .state-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 4px;
+  font-weight: 700; text-transform: uppercase;
+}
+.state-running { background: var(--success); color: #000; }
+.state-ready { background: var(--accent); color: #000; }
+.state-waiting { background: var(--warning); color: #000; }
+.state-sleeping { background: var(--muted); color: #000; }
+.state-suspended { background: var(--purple); color: #000; }
+.proc-details {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.proc-details h4 { color: var(--accent); margin-bottom: 10px; font-size: 14px; }
+.proc-details .row {
+  display: flex; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px dashed var(--panel-2);
+  font-size: 12.5px; gap: 10px;
+}
+.proc-details .row b { color: var(--accent); font-family: 'Consolas', monospace; text-align: right; }
+.proc-details .thread-item {
+  background: var(--bg);
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-left: 3px solid var(--accent);
+}
+.proc-details .thread-item .prio {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+}
+.prio-high { background: var(--danger); color: #fff; }
+.prio-normal { background: var(--accent); color: #000; }
+.prio-low { background: var(--muted); color: #000; }
+
+/* ДИСПЕТЧЕР */
+.taskmgr {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.taskmgr-header {
+  background: var(--panel-2);
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  display: grid;
+  grid-template-columns: 60px 1fr 90px 90px 90px 80px;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 700;
+}
+.taskmgr-row {
+  padding: 9px 16px;
+  display: grid;
+  grid-template-columns: 60px 1fr 90px 90px 90px 80px;
+  gap: 8px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--panel-2);
+  align-items: center;
+  transition: .2s;
+  font-family: 'Consolas', monospace;
+}
+.taskmgr-row:hover { background: var(--panel-2); }
+.taskmgr-row.highlight { background: rgba(0,217,255,.15); }
+.taskmgr-row .num { color: var(--warning); font-weight: 700; }
+.taskmgr-row .cpu-bar {
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.taskmgr-row .cpu-bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+  transition: width .3s;
+}
+.taskmgr-row .ram { color: var(--accent); }
+.taskmgr-row .state { font-size: 11px; font-weight: 700; }
+.tm-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+
+/* ПЛАНИРОВЩИК */
+.sched-toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 14px; background: var(--panel); padding: 14px; border-radius: 10px;
+  border: 1px solid var(--panel-2);
+}
+.sched-toolbar label {
+  font-size: 12px; color: var(--muted);
+  display: flex; flex-direction: column; gap: 4px;
+  text-transform: uppercase; font-weight: 600; letter-spacing: .5px;
+}
+.sched-toolbar select, .sched-toolbar input {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--panel-2);
+  padding: 7px 10px; border-radius: 6px; font-size: 13px; font-family: inherit;
+}
+.sched-game {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.sched-timeline {
+  display: flex; gap: 2px; height: 44px; margin: 14px 0;
+  border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--panel-2); background: var(--bg);
+}
+.sched-slice {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #000;
+  transition: .2s; min-width: 0; overflow: hidden; white-space: nowrap;
+}
+.sched-legend {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted);
+}
+.sched-legend span { display: flex; align-items: center; gap: 6px; }
+.sched-legend span::before {
+  content: ''; width: 12px; height: 12px;
+  border-radius: 3px; background: currentColor;
+}
+
+/* АССЕТЫ */
+.fs-tree-item { cursor: pointer; color: var(--muted); }
+
+/* ТЕРМИНАЛ */
+.terminal {
+  background: #000; color: #00e676;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  padding: 16px; border-radius: 10px;
+  min-height: 400px; max-height: 600px;
+  overflow-y: auto; line-height: 1.5;
+  border: 1px solid var(--panel-2);
+}
+.terminal .line { white-space: pre-wrap; word-break: break-all; }
+.terminal .prompt { color: var(--accent); }
+.terminal .error { color: var(--danger); }
+.terminal-input-wrap { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.terminal-input-wrap span { color: var(--accent); }
+.terminal-input-wrap input {
+  flex: 1; background: transparent; border: none;
+  color: #00e676; font-family: inherit; font-size: inherit; outline: none;
+}
+.terminal-help {
+  background: var(--panel); padding: 12px 16px; border-radius: 8px;
+  font-size: 12.5px; color: var(--muted); margin-bottom: 12px;
+  border: 1px solid var(--panel-2); line-height: 1.8;
+}
+.terminal-help code {
+  color: var(--accent); background: var(--bg);
+  padding: 2px 6px; border-radius: 4px;
+  font-family: 'Consolas', monospace; margin: 0 2px;
+}
+
+.quiz { display: flex; flex-direction: column; gap: 14px; }
+.quiz-item { background: var(--panel); padding: 16px; border-radius: 10px; border: 1px solid var(--panel-2); }
+.quiz-item h4 { margin-bottom: 10px; font-size: 14.5px; line-height: 1.5; }
+.quiz-options { display: flex; flex-direction: column; gap: 6px; }
+.quiz-options button {
+  text-align: left; background: var(--panel-2);
+  border: 1px solid var(--panel-2); color: var(--text);
+  padding: 10px 14px; border-radius: 6px;
+  cursor: pointer; font-size: 13.5px; font-family: inherit; transition: .2s;
+}
+.quiz-options button:hover { background: #2a3352; border-color: var(--accent); }
+.quiz-options button.correct { background: var(--success); color: #000; border-color: var(--success); font-weight: 600; }
+.quiz-options button.wrong { background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 600; }
+
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.heat-cell {
+  padding: 14px; border-radius: 8px;
+  text-align: center; font-size: 12.5px;
+  color: #000; font-weight: 700;
+}
+.heat-cell small { display: block; opacity: .75; font-size: 11px; margin-top: 4px; }
+.rec-box {
+  background: var(--panel);
+  border-left: 4px solid var(--warning);
+  padding: 14px; border-radius: 8px;
+  margin-top: 14px; font-size: 13.5px; line-height: 1.7;
+  border: 1px solid var(--panel-2);
+  border-left-width: 4px;
+}
+
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10,14,26,.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px; backdrop-filter: blur(8px);
+}
+.modal-backdrop.hidden { display: none; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 16px;
+  padding: 32px; max-width: 460px; width: 100%;
+  box-shadow: 0 20px 80px rgba(0,0,0,.6);
+}
+.modal h2 { margin-bottom: 8px; font-size: 20px; }
+.modal p { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+.modal label {
+  display: block; font-size: 11.5px; font-weight: 700;
+  margin-bottom: 6px; margin-top: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.modal input {
+  width: 100%; padding: 11px 14px;
+  border: 1px solid var(--panel-2); border-radius: 9px;
+  font-size: 14px; background: var(--bg); color: var(--text); font-family: inherit;
+}
+.modal input:focus { outline: 2px solid var(--accent-2); }
+.modal .btn { width: 100%; margin-top: 22px; padding: 13px; font-size: 14.5px; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--success); color: #000;
+  padding: 14px 22px; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  transform: translateY(120%);
+  transition: .4s; z-index: 999;
+  font-weight: 700; max-width: 340px; font-size: 13.5px;
+}
+.toast.show { transform: translateY(0); }
+.toast.error { background: var(--danger); color: #fff; }
+.toast.info { background: var(--accent-2); color: #000; }
+
+footer {
+  text-align: center; padding: 16px;
+  color: var(--muted); font-size: 12.5px;
+  border-top: 1px solid var(--panel-2);
+}
+
+.confetti {
+  position: fixed; width: 8px; height: 14px; top: -20px;
+  animation: fall 3s linear forwards; z-index: 998; pointer-events: none;
+}
+@keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: 0; } }
+
+.settings-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--panel-2); font-size: 14px;
+}
+.switch {
+  position: relative; width: 44px; height: 24px;
+  background: var(--panel-2); border-radius: 12px;
+  cursor: pointer; transition: .2s;
+}
+.switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; background: white;
+  border-radius: 50%; transition: .2s;
+}
+.switch.on { background: var(--accent-2); }
+.switch.on::after { left: 22px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">GameOS Lab</div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="dashboard">📊 Прогресс</button>
+    <button class="tab" data-tab="topics">📚 Темы</button>
+    <button class="tab" data-tab="processes">⚙ Процессы</button>
+    <button class="tab" data-tab="taskmgr">🖥 Диспетчер</button>
+    <button class="tab" data-tab="scheduler">📅 Планировщик</button>
+    <button class="tab" data-tab="frameloop">🎮 Кадр</button>
+    <button class="tab" data-tab="threads">🧵 Потоки</button>
+    <button class="tab" data-tab="memory">💾 Память</button>
+    <button class="tab" data-tab="cache">🖼 Кэш</button>
+    <button class="tab" data-tab="latency">⚡ Задержки</button>
+    <button class="tab" data-tab="assets">📁 Ассеты</button>
+    <button class="tab" data-tab="console">💻 Консоль</button>
+    <button class="tab" data-tab="tests">📝 Тесты</button>
+    <button class="tab" data-tab="analytics">📈 Аналитика</button>
+    <button class="tab" data-tab="settings">⚙</button>
+  </nav>
+  <div class="user-info">
+    <span id="progressBadge">0%</span>
+    <button class="icon-btn" id="themeToggle" title="Сменить тему">🌗</button>
+  </div>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="panel active">
+    <h2>Личный кабинет</h2>
+    <p class="hint" id="studentGreeting">Студент: <b>—</b></p>
+
+    <h3>👤 Данные студента</h3>
+    <div class="student-info">
+      <label>ФИО
+        <input type="text" id="studentName" placeholder="Иванов Иван Иванович">
+      </label>
+      <label>Группа
+        <input type="text" id="studentGroup" placeholder="РКИ-21-1">
+      </label>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value" id="statProgress">0%</div><div>Прогресс</div></div>
+      <div class="stat-card"><div class="stat-value" id="statDone">0/0</div><div>Правильных</div></div>
+      <div class="stat-card"><div class="stat-value" id="statAch">0</div><div>Достижений</div></div>
+      <div class="stat-card"><div class="stat-value" id="statXP">0</div><div>XP</div></div>
+      <div class="stat-card"><div class="stat-value" id="statLevel">1</div><div>Уровень</div></div>
+      <div class="stat-card"><div class="stat-value" id="statFPS">60</div><div>Лучший FPS</div></div>
+    </div>
+
+    <div class="progress-bar-wrap"><div class="progress-bar" id="mainProgress"></div></div>
+
+    <h3>🏆 Достижения</h3>
+    <div class="achievements" id="achievementsList"></div>
+
+    <h3>📋 Журнал заданий</h3>
+    <table class="journal" id="journal">
+      <thead><tr><th>Модуль</th><th>Вопрос</th><th>Ваш ответ</th><th>Эталон</th><th>Статус</th><th>Балл</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="actions">
+      <button class="btn primary" id="exportPDF">📄 PDF-отчёт</button>
+      <button class="btn" id="exportCSV">📊 CSV</button>
+      <button class="btn" id="exportJSON">💾 JSON</button>
+      <button class="btn" id="importJSON">📥 Импорт</button>
+      <button class="btn danger" id="resetAll">🔄 Сбросить</button>
+    </div>
+  </section>
+
+  <!-- ТЕМЫ -->
+  <section id="topics" class="panel">
+    <h2>Учебные темы</h2>
+    <p class="hint">9 тем о том, как ОС работает во время игры. Раскройте тему и ответьте на вопросы — правильные ответы фиксируются в отчёте.</p>
+    <div id="topicsList"></div>
+  </section>
+
+  <!-- ПРОЦЕССЫ -->
+  <section id="processes" class="panel">
+    <h2>⚙ Процессы во время игры</h2>
+    <p class="hint">Так ОС видит запущенную игру: главный процесс, дочерние, службы, драйверы. Кликните по процессу — увидите детали.</p>
+
+    <div class="proc-toolbar">
+      <label>Сцена
+        <select id="procScene">
+          <option value="menu">Главное меню игры</option>
+          <option value="loading" selected>Загрузка уровня</option>
+          <option value="gameplay">Геймплей</option>
+          <option value="multiplayer">Мультиплеер</option>
+          <option value="paused">Пауза</option>
+        </select>
+      </label>
+      <button class="btn primary" id="procRefresh">🔄 Обновить снимок</button>
+      <span style="margin-left:auto;color:var(--muted);font-size:12px" id="procTime">—</span>
+    </div>
+
+    <div class="proc-layout">
+      <div class="proc-tree" id="procTree"></div>
+      <div class="proc-details" id="procDetails">
+        <p style="color:var(--muted);text-align:center">Выберите процесс слева</p>
+      </div>
+    </div>
+
+    <div id="procAnswerBlock"></div>
+  </section>
+
+  <!-- ДИСПЕТЧЕР -->
+  <section id="taskmgr" class="panel">
+    <h2>🖥 Диспетчер задач во время игры</h2>
+    <p class="hint">Реальное поведение диспетчера задач Windows во время игровой сессии.</p>
+
+    <div class="tm-actions">
+      <button class="btn success" id="tmStart">▶ Запустить игру</button>
+      <button class="btn warning" id="tmLoad">📥 Загрузить уровень</button>
+      <button class="btn danger" id="tmKill">✖ Завершить процесс</button>
+      <label style="margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="tmAuto" checked> Авто-обновление (1 сек)
+      </label>
+    </div>
+
+    <div class="taskmgr">
+      <div class="taskmgr-header">
+        <span>PID</span><span>Имя процесса</span><span>CPU %</span><span>RAM</span><span>Диск</span><span>Состояние</span>
+      </div>
+      <div id="taskmgrBody"></div>
+    </div>
+
+    <div id="tmAnswerBlock"></div>
+  </section>
+
+  <!-- ПЛАНИРОВЩИК -->
+  <section id="scheduler" class="panel">
+    <h2>📅 Планировщик ОС во время игры</h2>
+    <p class="hint">Как ОС распределяет время CPU между процессами игры.</p>
+
+    <div class="sched-toolbar">
+      <label>Алгоритм
+        <select id="schedAlgo">
+          <option value="rr" selected>Round Robin (Windows)</option>
+          <option value="priority">Приоритетный</option>
+          <option value="fcfs">FCFS</option>
+        </select>
+      </label>
+      <label>Квант (мс)
+        <input type="number" id="schedQuantum" value="4" min="1" max="20" style="width:70px">
+      </label>
+      <label>Процессы (имя:burst:prio)
+        <input type="text" id="schedInput" value="Render:8:3, Physics:5:3, AI:4:2, Audio:2:2, Loader:6:1" style="width:320px">
+      </label>
+      <button class="btn primary" id="schedRun">▶ Запустить</button>
+    </div>
+
+    <div class="sched-game">
+      <h4 style="color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Расписание CPU</h4>
+      <div class="sched-timeline" id="schedTimeline"></div>
+      <div class="sched-legend" id="schedLegend"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:16px" id="schedMetrics"></div>
+    </div>
+
+    <div id="schedAnswerBlock"></div>
+  </section>
+
+  <!-- КАДР -->
+  <section id="frameloop" class="panel">
+    <h2>🎮 Кадр игры: бюджет 16.67 мс</h2>
+    <p class="hint">При 60 FPS на всё отводится <b>16.67 мс</b>. Настройте ползунки и ответьте на вопросы.</p>
+
+    <div class="frame-dashboard">
+      <div class="frame-budget">
+        <h4>⏱ Стоимость этапов кадра</h4>
+        <div class="budget-slider">
+          <label>Целевой FPS <span id="targetFpsVal">60</span></label>
+          <input type="range" id="targetFps" min="30" max="240" step="30" value="60">
+        </div>
+        <div class="budget-slider">
+          <label>🖼 Рендер (GPU) <span><span id="renderVal">6.0</span> мс</span></label>
+          <input type="range" id="renderCost" min="0" max="20" step="0.5" value="6">
+        </div>
+        <div class="budget-slider">
+          <label>⚙ Физика (CPU) <span><span id="physicsVal">3.0</span> мс</span></label>
+          <input type="range" id="physicsCost" min="0" max="15" step="0.5" value="3">
+        </div>
+        <div class="budget-slider">
+          <label>🤖 AI (CPU) <span><span id="aiVal">2.0</span> мс</span></label>
+          <input type="range" id="aiCost" min="0" max="15" step="0.5" value="2">
+        </div>
+        <div class="budget-slider">
+          <label>🔊 Аудио <span><span id="audioVal">1.0</span> мс</span></label>
+          <input type="range" id="audioCost" min="0" max="10" step="0.5" value="1">
+        </div>
+        <div class="budget-slider">
+          <label>💾 Ввод-вывод <span><span id="ioVal">0.5</span> мс</span></label>
+          <input type="range" id="ioCost" min="0" max="10" step="0.5" value="0.5">
+        </div>
+      </div>
+
+      <div>
+        <div class="frame-visual">
+          <h4 style="color:var(--accent);margin-bottom:10px;font-size:13px;letter-spacing:1px;text-transform:uppercase">Таймлайн кадра</h4>
+          <div class="frame-timeline" id="frameTimeline">
+            <div class="frame-marker" id="frameMarker" style="left:100%" data-label="16.67 мс"></div>
+          </div>
+          <div class="frame-stats">
+            <div class="frame-stat"><div class="label">Всего</div><div class="value" id="totalFrameTime">—</div></div>
+            <div class="frame-stat"><div class="label">Бюджет</div><div class="value" id="frameBudgetVal">16.67</div></div>
+            <div class="frame-stat"><div class="label">Запас</div><div class="value" id="frameSlack">—</div></div>
+            <div class="frame-stat"><div class="label">FPS</div><div class="value" id="realFps">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="frameAnswerBlock"></div>
+  </section>
+
+  <!-- ПОТОКИ -->
+  <section id="threads" class="panel">
+    <h2>🧵 Планирование потоков игры</h2>
+    <p class="hint">Расставьте приоритеты потоков. Если Render или Physics не успевает — FPS падает.</p>
+
+    <div class="thread-sim">
+      <div id="threadsContainer"></div>
+      <div class="fps-meter">
+        <div>
+          <div class="fps-label">FPS при этих приоритетах</div>
+          <div class="fps-number good" id="simFps">60</div>
+        </div>
+        <div class="fps-verdict" id="simVerdict">Все потоки работают сбалансированно.</div>
+      </div>
+    </div>
+
+    <div id="threadsAnswerBlock"></div>
+  </section>
+
+  <!-- ПАМЯТЬ -->
+  <section id="memory" class="panel">
+    <h2>💾 Память во время игры</h2>
+    <p class="hint">VRAM и RAM в реальном времени. Управляйте ресурсами и отвечайте на вопросы.</p>
+
+    <div class="load-grid">
+      <div class="load-panel gpu">
+        <h4>🖼 GPU Memory (VRAM)</h4>
+        <div class="load-canvas" id="vramCanvas"></div>
+        <div class="load-value" id="vramValue">0 / 8192 MB</div>
+      </div>
+      <div class="load-panel cpu">
+        <h4>🧠 RAM (Heap игры)</h4>
+        <div class="load-canvas" id="ramCanvas"></div>
+        <div class="load-value" id="ramValue">0 / 16384 MB</div>
+      </div>
+    </div>
+
+    <div style="background:var(--panel);padding:16px;border-radius:12px;border:1px solid var(--panel-2)">
+      <h4 style="color:var(--accent);margin-bottom:12px;font-size:13px;text-transform:uppercase;letter-spacing:1px">Управление ресурсами</h4>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn success" data-mem-action="load-texture">🖼 Текстура 4K (256 MB)</button>
+        <button class="btn success" data-mem-action="load-mesh">📦 Меш героя (64 MB)</button>
+        <button class="btn success" data-mem-action="load-audio">🔊 Звук боя (32 MB)</button>
+        <button class="btn warning" data-mem-action="spawn">🎯 1000 объектов</button>
+        <button class="btn danger" data-mem-action="release">🗑 Выгрузить</button>
+      </div>
+      <div style="margin-top:14px;font-family:'Consolas',monospace;font-size:12px;background:var(--bg);padding:12px;border-radius:8px;max-height:180px;overflow-y:auto" id="memLog">
+        <span style="color:var(--muted)">Лог аллокаций пуст...</span>
+      </div>
+    </div>
+
+    <div id="memAnswerBlock"></div>
+  </section>
+
+  <!-- КЭШ -->
+  <section id="cache" class="panel">
+    <h2>🖼 Кэш текстур</h2>
+    <p class="hint">MISS = подгрузка с диска, HIT = быстрое чтение. Ответьте на вопросы после прогона.</p>
+
+    <div class="cache-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div><b style="color:var(--accent)">Кэш VRAM</b><span style="color:var(--muted);font-size:12px;margin-left:8px">8 слотов</span></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="cacheRequest">🎬 Запросить</button>
+          <button class="btn" id="cacheAuto">▶ Авто-прогон 30 кадров</button>
+          <button class="btn danger" id="cacheClear">🗑 Очистить</button>
+        </div>
+      </div>
+
+      <div class="cache-grid" id="cacheGrid"></div>
+
+      <div class="cache-stats">
+        <div class="cache-stat"><b id="cacheHits">0</b>HIT</div>
+        <div class="cache-stat"><b id="cacheMisses">0</b>MISS</div>
+        <div class="cache-stat"><b id="cacheHitRate">0%</b>Hit Rate</div>
+      </div>
+
+      <div style="font-family:'Consolas',monospace;font-size:12px;background:var(--bg);padding:12px;border-radius:8px;max-height:200px;overflow-y:auto;margin-top:14px" id="cacheLog">
+        <span style="color:var(--muted)">Лог кэша пуст...</span>
+      </div>
+    </div>
+
+    <div id="cacheAnswerBlock"></div>
+  </section>
+
+  <!-- ЗАДЕРЖКИ -->
+  <section id="latency" class="panel">
+    <h2>⚡ Задержки ввода-вывода</h2>
+    <p class="hint">Цепочка от нажатия до картинки. Изменяйте параметры и отвечайте на вопросы.</p>
+
+    <div class="latency-panel">
+      <div class="latency-chain">
+        <div class="latency-hop">🖱 Ввод <small>USB polling</small></div>
+        <div class="latency-arrow">→</div>
+        <div class="latency-hop">🖥 ОС / драйвер</div>
+        <div class="latency-arrow">→</div>
+        <div class="latency-hop">🎮 Игровой цикл</div>
+        <div class="latency-arrow">→</div>
+        <div class="latency-hop">📡 GPU</div>
+        <div class="latency-arrow">→</div>
+        <div class="latency-hop">📺 Монитор</div>
+      </div>
+
+      <div class="latency-bar" id="latencyBar"></div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px" id="latencyBreakdown"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <label style="font-size:13px;display:flex;gap:8px;align-items:center">
+          USB polling (Гц):
+          <select id="usbPoll" style="padding:4px 8px;background:var(--bg);color:var(--text);border:1px solid var(--panel-2);border-radius:4px">
+            <option value="125">125</option>
+            <option value="500">500</option>
+            <option value="1000" selected>1000</option>
+            <option value="8000">8000</option>
+          </select>
+        </label>
+        <label style="font-size:13px;display:flex;gap:8px;align-items:center">
+          Монитор:
+          <select id="monitorHz" style="padding:4px 8px;background:var(--bg);color:var(--text);border:1px solid var(--panel-2);border-radius:4px">
+            <option value="60">60 Гц</option>
+            <option value="144" selected>144 Гц</option>
+            <option value="240">240 Гц</option>
+            <option value="360">360 Гц</option>
+          </select>
+        </label>
+        <label style="font-size:13px;display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="vsyncOn"> VSync
+        </label>
+        <button class="btn primary" id="latencyCalc">Рассчитать</button>
+      </div>
+    </div>
+
+    <div id="latencyAnswerBlock"></div>
+  </section>
+
+  <!-- АССЕТЫ -->
+  <section id="assets" class="panel">
+    <h2>📁 Файловая система ассетов игры</h2>
+    <p class="hint">Кликните по файлу — увидите метаданные. Ответьте на вопросы после изучения.</p>
+
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:14px">
+      <div id="fsTree" style="background:var(--panel);border:1px solid var(--panel-2);border-radius:12px;padding:14px;font-family:'Consolas',monospace;font-size:12.5px;line-height:1.8;max-height:500px;overflow-y:auto"></div>
+      <div id="fsDetails" style="background:var(--panel);border:1px solid var(--panel-2);border-radius:12px;padding:16px">
+        <p style="color:var(--muted);text-align:center">Выберите файл слева</p>
+      </div>
+    </div>
+
+    <div id="fsAnswerBlock"></div>
+  </section>
+
+  <!-- КОНСОЛЬ -->
+  <section id="console" class="panel">
+    <h2>💻 Консоль разработчика</h2>
+    <div class="terminal-help">
+      Команды: <code>help</code>, <code>fps</code>, <code>gpu</code>, <code>cpu</code>, <code>mem</code>, <code>threads</code>, <code>processes</code>, <code>drawcalls</code>, <code>textures</code>, <code>pause</code>, <code>resume</code>, <code>profile 10s</code>, <code>clear</code>
+    </div>
+    <div class="terminal" id="terminalOutput">
+      <div class="line">GameOS Console v3.0 — консоль разработчика игры</div>
+      <div class="line">Введите <span class="prompt">help</span> для списка команд.</div>
+      <div class="line"></div>
+      <div id="terminalHistory"></div>
+      <div class="terminal-input-wrap">
+        <span>dev@gameos:~$</span>
+        <input type="text" id="terminalInput" autocomplete="off">
+      </div>
+    </div>
+
+    <div id="consoleAnswerBlock"></div>
+  </section>
+
+  <!-- ТЕСТЫ -->
+  <section id="tests" class="panel">
+    <h2>📝 Тесты</h2>
+    <p class="hint">Два блока: тест по теории и тест по практическим заданиям. Каждый ответ фиксируется, неверный — с пояснением.</p>
+
+    <h3>📚 Тест по теории ОС в играх</h3>
+    <div id="theoryTest"></div>
+
+    <h3>🎮 Тест по практическим заданиям</h3>
+    <div id="practiceTest"></div>
+  </section>
+
+  <!-- АНАЛИТИКА -->
+  <section id="analytics" class="panel">
+    <h2>📈 Аналитика</h2>
+
+    <h3>🔥 Тепловая карта по модулям</h3>
+    <div class="heatmap" id="heatmap"></div>
+
+    <h3>📊 Статистика по модулям</h3>
+    <table class="journal" id="statsTable">
+      <thead><tr><th>Модуль</th><th>Правильных</th><th>Всего</th><th>Средний балл</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>💡 Рекомендации</h3>
+    <div class="rec-box" id="recommendations">Начните с раздела «Темы».</div>
+
+    <h3>🕒 Последние ответы</h3>
+    <table class="journal" id="attemptsTable">
+      <thead><tr><th>Задание</th><th>Ваш ответ</th><th>Эталон</th><th>✓</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- НАСТРОЙКИ -->
+  <section id="settings" class="panel">
+    <h2>⚙ Настройки</h2>
+    <div class="settings-row"><span>🌗 Светлая тема</span><div class="switch" id="setTheme"></div></div>
+    <div class="settings-row"><span>🔊 Звуковые эффекты</span><div class="switch on" id="setSound"></div></div>
+    <div class="settings-row"><span>🎉 Конфетти</span><div class="switch on" id="setConfetti"></div></div>
+  </section>
+</main>
+
+<footer>
+  GameOS Lab © 2026 — Операционные системы и среды для разработки компьютерных игр
+</footer>
+
+<!-- МОДАЛКА ОТВЕТА -->
+<div class="answer-modal-backdrop hidden" id="answerModal">
+  <div class="answer-modal" id="answerModalBox">
+    <h3 id="answerModalTitle">✗ Неверный ответ</h3>
+    <div class="modal-label">Ваш ответ:</div>
+    <div class="modal-value wrong-value" id="answerModalYour"></div>
+    <div class="modal-label">Правильный ответ:</div>
+    <div class="modal-value correct-value" id="answerModalCorrect"></div>
+    <div class="modal-label" id="answerModalExplanationLabel">Пояснение:</div>
+    <div class="explanation" id="answerModalExplanation"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="answerModalClose">Понятно</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА ВХОДА -->
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal">
+    <h2>🎮 Добро пожаловать в GameOS Lab</h2>
+    <p>Введите данные для сохранения прогресса. Все ответы фиксируются в отчёте.</p>
+    <label>ФИО студента</label>
+    <input type="text" id="loginFio" placeholder="Иванов Иван Иванович" autocomplete="off">
+    <label>Группа</label>
+    <input type="text" id="loginGroup" placeholder="РКИ-21-1" autocomplete="off">
+    <button class="btn primary" id="loginBtn">Начать работу 🚀</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* =========================================================
+   GameOS Lab v3.0 — система ответов + тесты
+   ========================================================= */
+
+const STORAGE_KEY = 'gameos_state_v3';
+const SETTINGS_KEY = 'gameos_settings_v3';
+const LAST_STUDENT_KEY = 'gameos_last_student_v3';
+
+const defaultState = {
+  answers: {},        // { taskId: { value, correct, at } }
+  achievements: {},
+  attempts: [],
+  xp: 0,
+  studentName: '',
+  studentGroup: '',
+  bestFPS: 60
+};
+
+const defaultSettings = { theme: 'dark', sound: true, confetti: true };
+
+let state = loadJSON(STORAGE_KEY, defaultState);
+let settings = loadJSON(SETTINGS_KEY, defaultSettings);
+
+function loadJSON(key, def) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? { ...def, ...JSON.parse(raw) } : { ...def };
+  } catch { return { ...def }; }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); renderProgress(); }
+function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
+  if (id === 'analytics') renderAnalytics();
+}
+
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type === 'error' ? 'error' : type === 'info' ? 'info' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+let audioCtx = null;
+function beep(freq = 800, dur = 120, type = 'sine') {
+  if (!settings.sound) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur / 1000);
+    osc.start(); osc.stop(audioCtx.currentTime + dur / 1000);
+  } catch {}
+}
+function soundSuccess() { beep(880, 100); setTimeout(() => beep(1320, 150), 100); }
+function soundError() { beep(200, 200, 'sawtooth'); }
+
+function confetti() {
+  if (!settings.confetti) return;
+  const colors = ['#00d9ff','#00e676','#ffaa00','#ff3d71','#b388ff','#76ff03'];
+  for (let i = 0; i < 40; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDelay = Math.random() * 0.5 + 's';
+    c.style.animationDuration = (2 + Math.random() * 2) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
+}
+
+/* =========================================================
+   ВАЛИДАТОРЫ ОТВЕТОВ
+   ========================================================= */
+
+const VALIDATORS = {
+  // Точный ответ (текст)
+  input: (val, expected) => {
+    const v = String(val || '').trim().toLowerCase();
+    const e = String(expected || '').trim().toLowerCase();
+    if (!v) return false;
+    // Разрешаем синонимы через разделитель |
+    const variants = e.split('|').map(x => x.trim());
+    return variants.some(variant => v === variant);
+  },
+  // Числовой ответ с минимальной погрешностью
+  numeric: (val, expected, opts = {}) => {
+    const v = parseFloat(String(val || '').replace(',', '.'));
+    const e = parseFloat(String(expected).replace(',', '.'));
+    if (isNaN(v) || isNaN(e)) return false;
+    const tolerance = opts.tolerance ?? 0.01;
+    return Math.abs(v - e) <= tolerance;
+  },
+  // Выбор из списка
+  select: (val, expected) => Number(val) === Number(expected),
+  // Развёрнутый ответ с ключевыми словами
+  textarea: (val, expected, opts = {}) => {
+    const v = String(val || '').trim().toLowerCase();
+    if (!v) return false;
+    const minLen = opts.minLen || 30;
+    if (v.length < minLen) return false;
+    if (opts.keywords) {
+      const required = opts.minKeywords || Math.ceil(opts.keywords.length / 2);
+      const found = opts.keywords.filter(k => v.includes(k.toLowerCase())).length;
+      return found >= required;
+    }
+    return true;
+  },
+  // Мультивыбор
+  chips: (val, expected) => {
+    const sel = new Set(val || []);
+    const exp = new Set(expected || []);
+    if (sel.size !== exp.size) return false;
+    for (const x of sel) if (!exp.has(x)) return false;
+    return true;
+  }
+};
+
+/* =========================================================
+   БАНК ВОПРОСОВ — задания с полями ответа
+   Формат:
+   {
+     id: 'уникальный-id',
+     module: 'Модуль',
+     q: 'Текст вопроса',
+     type: 'input' | 'numeric' | 'select' | 'textarea' | 'chips',
+     expected: значение,
+     options?: [...] (для select/chips),
+     opts?: { tolerance, minLen, keywords, minKeywords },
+     explanation: 'Пояснение для правильного ответа',
+     hint?: 'Подсказка',
+     weight: N  // вес в XP и отчёте
+   }
+   ========================================================= */
+
+const QUESTIONS = [
+
+  /* ===== ТЕМА 1: Файловые системы ===== */
+  {
+    id: 't1_q1', module: 'Тема 1. Файловые системы',
+    q: 'Сколько миллисекунд отводится на один кадр при 60 FPS?',
+    type: 'numeric', expected: 16.67, opts: { tolerance: 0.05 },
+    hint: 'Формула: 1000 / FPS',
+    explanation: '1000 мс / 60 кадров = 16.67 мс на кадр. Это «бюджет кадра» — всё, что игра должна успеть сделать за один кадр.',
+    weight: 10
+  },
+  {
+    id: 't1_q2', module: 'Тема 1. Файловые системы',
+    q: 'Какое расширение у файла-архива с игровыми ассетами в Unreal Engine?',
+    type: 'input', expected: '.pak|pak',
+    hint: 'Три буквы, начинается с p',
+    explanation: '.pak — стандартный формат архива ассетов в Unreal Engine. Один большой файл читается ОС быстрее, чем тысячи мелких.',
+    weight: 10
+  },
+  {
+    id: 't1_q3', module: 'Тема 1. Файловые системы',
+    q: 'Отметьте, что относится к преимуществам упаковки ассетов в один архив:',
+    type: 'chips',
+    options: ['Быстрее чтение с диска', 'Защита от извлечения', 'Больше места на диске', 'Меньше операций I/O в ОС'],
+    expected: [0, 1, 3],
+    explanation: 'Один архив = меньше обращений к файловой системе ОС. Плюс защита от лёгкого извлечения ресурсов. Место экономится только если используется сжатие.',
+    weight: 15
+  },
+  {
+    id: 't1_q4', module: 'Тема 1. Файловые системы',
+    q: 'Опишите, почему стриминг тяжёлых текстур во время игры должен иметь НИЗКИЙ приоритет в ОС.',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['рендер', 'кадр', 'CPU', 'приоритет', 'просадк', 'fps'], minKeywords: 3 },
+    explanation: 'Если стриминг ассетов получит высокий приоритет, он начнёт конкурировать с потоками рендера и физики за время CPU. Это вызовет просадки FPS — кадры не успеют вовремя. Низкий приоритет гарантирует, что критичные потоки получат ресурсы первыми.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 2: Память ===== */
+  {
+    id: 't2_q1', module: 'Тема 2. Память',
+    q: 'Как называется память видеокарты, где хранятся текстуры и буферы кадра? (аббревиатура из 4 букв)',
+    type: 'input', expected: 'vram',
+    hint: 'V___',
+    explanation: 'VRAM (Video RAM) — быстрая память GPU. Драйвер и ОС управляют её выделением. Текстуры и рендер-таргеты живут именно в VRAM.',
+    weight: 10
+  },
+  {
+    id: 't2_q2', module: 'Тема 2. Память',
+    q: 'Сколько памяти в MB займёт 20 текстур, если каждая весит 256 MB?',
+    type: 'numeric', expected: 5120, opts: { tolerance: 0 },
+    hint: '20 × 256',
+    explanation: '20 × 256 = 5120 MB = 5 ГБ VRAM. На видеокартах с 8 ГБ это уже больше половины. Игра начнёт вытеснять текстуры в RAM — просадки FPS.',
+    weight: 15
+  },
+  {
+    id: 't2_q3', module: 'Тема 2. Память',
+    q: 'Что произойдёт с производительностью игры при переполнении VRAM?',
+    type: 'select',
+    options: ['Игра ускорится', 'Драйвер вытеснит текстуры в RAM, FPS просядет', 'Ничего не изменится', 'Игра выключится'],
+    expected: 1,
+    explanation: 'При переполнении VRAM драйвер вытесняет текстуры в системную RAM. Чтение из RAM медленнее в разы — возникают резкие просадки FPS и «статтеринг».',
+    weight: 10
+  },
+  {
+    id: 't2_q4', module: 'Тема 2. Память',
+    q: 'Зачем в играх используют пул объектов вместо постоянного new/delete?',
+    type: 'textarea',
+    opts: { minLen: 50, keywords: ['фрагментац', 'gc', 'аллокац', 'производительност', 'пул'], minKeywords: 2 },
+    explanation: 'Пул объектов создаёт все объекты заранее и переиспользует их. Это снижает фрагментацию heap и не нагружает сборщик мусора (GC), который может вызвать микрофризы.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 3: Процессы ===== */
+  {
+    id: 't3_q1', module: 'Тема 3. Процессы',
+    q: 'Сколько миллисекунд на кадр приходится при целевом FPS = 144? (округлите до 2 знаков)',
+    type: 'numeric', expected: 6.94, opts: { tolerance: 0.05 },
+    hint: '1000 / 144',
+    explanation: '1000 / 144 ≈ 6.94 мс. При 144 FPS бюджет кадра почти в 2.5 раза меньше, чем при 60 FPS — оптимизировать надо жёстче.',
+    weight: 15
+  },
+  {
+    id: 't3_q2', module: 'Тема 3. Процессы',
+    q: 'Отметьте все процессы, которые типично активны во время геймплея игры:',
+    type: 'chips',
+    options: ['game.exe', 'nvcontainer.exe (драйвер GPU)', 'System', 'Photoshop.exe', 'audiodg.exe (аудио ОС)'],
+    expected: [0, 1, 2, 4],
+    explanation: 'Во время игры ОС держит активными: саму игру, драйвер GPU, системные процессы и аудио-службу. Photoshop — фоновое приложение, не связанное с игрой.',
+    weight: 15
+  },
+  {
+    id: 't3_q3', module: 'Тема 3. Процессы',
+    q: 'Как называется структура ОС, которая хранит PID, состояние и регистры процесса?',
+    type: 'input', expected: 'pcb|eprocess|process control block',
+    hint: 'Аббревиатура из 3 букв (или EPROCESS в Windows)',
+    explanation: 'PCB (Process Control Block) — структура описания процесса. В Windows аналог называется EPROCESS в ядре. Хранит PID, состояние, приоритет, регистры, указатели на память.',
+    weight: 15
+  },
+  {
+    id: 't3_q4', module: 'Тема 3. Процессы',
+    q: 'Почему при переходе игры в паузу ОС не завершает, а именно приостанавливает её процессы?',
+    type: 'textarea',
+    opts: { minLen: 50, keywords: ['состоян', 'возобнов', 'ресурс', 'сохран', 'suspended'], minKeywords: 2 },
+    explanation: 'Приостановка (suspend) сохраняет всё состояние игры в памяти — можно мгновенно возобновить. Завершение процесса потеряет прогресс и потребует полной перезагрузки. ОС переводит потоки в состояние waiting/suspended и освобождает CPU для других задач.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 4: Планирование ===== */
+  {
+    id: 't4_q1', module: 'Тема 4. Планирование',
+    q: 'Сколько процессов было в стартовом наборе планировщика?',
+    type: 'numeric', expected: 5, opts: { tolerance: 0 },
+    hint: 'Render, Physics, AI, Audio, Loader',
+    explanation: 'В стартовом наборе 5 процессов: Render, Physics, AI, Audio, Loader. Каждый со своим burst time и приоритетом.',
+    weight: 10
+  },
+  {
+    id: 't4_q2', module: 'Тема 4. Планирование',
+    q: 'Какой алгоритм планирования даёт каждому потоку равный квант времени?',
+    type: 'select',
+    options: ['FCFS', 'SJF', 'Round Robin', 'Priority'],
+    expected: 2,
+    explanation: 'Round Robin — каждый поток получает одинаковый квант времени по кругу. Windows использует модифицированный RR с приоритетами.',
+    weight: 10
+  },
+  {
+    id: 't4_q3', module: 'Тема 4. Планирование',
+    q: 'Почему поток Asset Loader получает низкий приоритет, а Render — высокий?',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['рендер', 'кадр', 'критич', 'конкур', 'приоритет', 'fps'], minKeywords: 3 },
+    explanation: 'Render критичен для каждого кадра — если он опоздает, FPS упадёт мгновенно. Asset Loader может подождать — ресурсы можно догрузить в следующем кадре. ОС даёт высокий приоритет критичным задачам, чтобы гарантировать стабильность.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 5: Кадр ===== */
+  {
+    id: 't5_q1', module: 'Тема 5. Кадр',
+    q: 'Суммарное время этапов кадра = 18.5 мс. Сколько FPS выдаст игра? (округлите до целого)',
+    type: 'numeric', expected: 54, opts: { tolerance: 1 },
+    hint: '1000 / 18.5',
+    explanation: '1000 / 18.5 ≈ 54 FPS. Игра не уложилась в бюджет 60 FPS (16.67 мс) — нужно оптимизировать самый тяжёлый этап.',
+    weight: 15
+  },
+  {
+    id: 't5_q2', module: 'Тема 5. Кадр',
+    q: 'Отметьте, какие этапы кадра выполняются на GPU, а не на CPU:',
+    type: 'chips',
+    options: ['Растеризация треугольников', 'Физика Ragdoll', 'AI поиск пути', 'Наложение текстур', 'Смешивание пикселей'],
+    expected: [0, 3, 4],
+    explanation: 'GPU делает растеризацию, текстурирование и блендинг. Физика и AI — обычно на CPU. Понимание разделения помогает найти узкое место.',
+    weight: 15
+  },
+  {
+    id: 't5_q3', module: 'Тема 5. Кадр',
+    q: 'Что означает термин "CPU-bound" применительно к игре?',
+    type: 'select',
+    options: ['GPU загружен на 100%', 'CPU загружен, GPU простаивает', 'Игра не использует GPU', 'Проблемы с сетью'],
+    expected: 1,
+    explanation: 'CPU-bound — узкое место в CPU. GPU простаивает, ожидая команды от процессора. Оптимизировать надо логику, а не графику.',
+    weight: 10
+  },
+
+  /* ===== ТЕМА 6: Потоки ===== */
+  {
+    id: 't6_q1', module: 'Тема 6. Потоки',
+    q: 'Сколько потоков было в стартовом наборе симулятора потоков?',
+    type: 'numeric', expected: 6, opts: { tolerance: 0 },
+    hint: 'Render, Physics, AI, Audio, Loader, Network',
+    explanation: '6 потоков: Render, Physics, AI, Audio, Loader, Network. У каждого свой вес (weight) и приоритет.',
+    weight: 10
+  },
+  {
+    id: 't6_q2', module: 'Тема 6. Потоки',
+    q: 'Отметьте, какие потоки должны иметь приоритет HIGH:',
+    type: 'chips',
+    options: ['Render Thread', 'Physics Thread', 'Asset Loader', 'Audio Thread'],
+    expected: [0, 1],
+    explanation: 'Render и Physics критичны для каждого кадра — им нужен HIGH. Asset Loader — фоновая задача, LOW. Audio может быть NORMAL.',
+    weight: 15
+  },
+  {
+    id: 't6_q3', module: 'Тема 6. Потоки',
+    q: 'Что произойдёт с FPS, если Asset Loader получит приоритет HIGH?',
+    type: 'select',
+    options: ['FPS вырастет', 'FPS упадёт из-за конкуренции с Render', 'Ничего', 'Игра зависнет'],
+    expected: 1,
+    explanation: 'Loader с HIGH начнёт отбирать кванты у Render. Рендер не успеет подготовить кадр — FPS упадёт. Высокий приоритет нужен только критичным потокам.',
+    weight: 15
+  },
+  {
+    id: 't6_q4', module: 'Тема 6. Потоки',
+    q: 'Опишите, зачем в играх выделяют Render Thread в отдельный поток от главного.',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['параллел', 'gpu', 'cpu', 'главн', 'ждать', 'асинхрон'], minKeywords: 2 },
+    explanation: 'Отдельный Render Thread позволяет CPU и GPU работать параллельно. Пока GPU рендерит предыдущий кадр, CPU готовит следующий. Главный поток не блокируется на командах рендера.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 7: Память в игре ===== */
+  {
+    id: 't7_q1', module: 'Тема 7. Память в игре',
+    q: 'Сколько MB RAM займут 10 загруженных мешей, если каждый весит 64 MB?',
+    type: 'numeric', expected: 640, opts: { tolerance: 0 },
+    hint: '10 × 64',
+    explanation: '10 × 64 = 640 MB. Это уже заметная доля RAM. При активной игре к этому добавятся текстуры, звуки и логика.',
+    weight: 15
+  },
+  {
+    id: 't7_q2', module: 'Тема 7. Память в игре',
+    q: 'Какой из ресурсов при загрузке потребляет VRAM, а не RAM?',
+    type: 'select',
+    options: ['Звук боя', 'Текстура 4K', 'Скрипт ИИ', 'Лог-файл'],
+    expected: 1,
+    explanation: 'Текстуры живут в VRAM (память GPU). Звуки, скрипты, логи — в системной RAM.',
+    weight: 10
+  },
+  {
+    id: 't7_q3', module: 'Тема 7. Память в игре',
+    q: 'Объясните, что такое фрагментация heap и почему она опасна для игры.',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['фрагмент', 'блок', 'выделить', 'аллокац', 'heap', 'просадк'], minKeywords: 3 },
+    explanation: 'Фрагментация — когда память разбита на мелкие несмежные блоки. ОС не может выделить большой непрерывный блок под новую текстуру или меш. Это вызывает просадки FPS или вылеты.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 8: Кэш ===== */
+  {
+    id: 't8_q1', module: 'Тема 8. Кэш',
+    q: 'Сколько слотов было в симуляторе кэша текстур?',
+    type: 'numeric', expected: 8, opts: { tolerance: 0 },
+    hint: 'Сетка 8×1',
+    explanation: '8 слотов — имитация 8 текстур, которые могут одновременно жить в VRAM кэше. В реальности VRAM вмещает сотни текстур.',
+    weight: 10
+  },
+  {
+    id: 't8_q2', module: 'Тема 8. Кэш',
+    q: 'Что такое HIT в терминах кэша текстур?',
+    type: 'select',
+    options: ['Текстура не найдена, грузим с диска', 'Текстура уже в VRAM, читаем быстро', 'Ошибка чтения', 'Текстура повреждена'],
+    expected: 1,
+    explanation: 'HIT = текстура уже в кэше VRAM. Чтение моментальное. MISS = придётся грузить с диска — это медленно и вызывает просадку.',
+    weight: 10
+  },
+  {
+    id: 't8_q3', module: 'Тема 8. Кэш',
+    q: 'Какой алгоритм замещения обычно эффективнее для кэша текстур в игре?',
+    type: 'select',
+    options: ['FIFO (первым пришёл — первым ушёл)', 'LRU (давно не использованный)', 'Random', 'LIFO'],
+    expected: 1,
+    explanation: 'LRU вытесняет текстуры, которые давно не использовались. В геймплее игрок долго находится в одной локации — эти текстуры должны остаться, а выброшенные когда-то давно — уже не нужны.',
+    weight: 15
+  },
+  {
+    id: 't8_q4', module: 'Тема 8. Кэш',
+    q: 'Опишите, что произойдёт, если hit rate кэша текстур упадёт до 30%.',
+    type: 'textarea',
+    opts: { minLen: 50, keywords: ['диск', 'подгрузк', 'miss', 'просадк', 'fps', 'кадр'], minKeywords: 3 },
+    explanation: 'При hit rate 30% большинство запросов — MISS. ОС будет постоянно читать с диска — это медленно. Возникнут просадки FPS, «статтеринг», подгрузки текстур прямо во время игры.',
+    weight: 20
+  },
+
+  /* ===== ТЕМА 9: Задержки ===== */
+  {
+    id: 't9_q1', module: 'Тема 9. Задержки',
+    q: 'Какова задержка USB polling при частоте опроса 1000 Гц? (в мс, округлите до 2 знаков)',
+    type: 'numeric', expected: 1, opts: { tolerance: 0.05 },
+    hint: '1000 / 1000',
+    explanation: '1000 мс / 1000 Гц = 1 мс. Это минимальная задержка опроса USB. При 125 Гц было бы 8 мс — уже заметный input lag.',
+    weight: 15
+  },
+  {
+    id: 't9_q2', module: 'Тема 9. Задержки',
+    q: 'Что добавляет VSync к задержке ввода-вывода?',
+    type: 'select',
+    options: ['Ничего', 'Задержку до 1 кадра (16.67 мс при 60 Гц)', 'Уменьшает задержку', 'Удваивает FPS'],
+    expected: 1,
+    explanation: 'VSync синхронизирует вывод с монитором, добавляя до 1 кадра задержки. При 60 Гц это +16.67 мс. Поэтому киберспортсмены отключают VSync.',
+    weight: 15
+  },
+  {
+    id: 't9_q3', module: 'Тема 9. Задержки',
+    q: 'Отметьте все этапы цепочки input lag, где участвует ОС:',
+    type: 'chips',
+    options: ['USB polling', 'Обработка драйвером', 'Передача события в игру', 'Отрисовка в GPU', 'Вывод на монитор'],
+    expected: [0, 1, 2],
+    explanation: 'ОС участвует в первых трёх этапах: опрос USB, обработка драйвером, передача события в приложение. GPU и монитор — уже вне ОС.',
+    weight: 15
+  },
+  {
+    id: 't9_q4', module: 'Тема 9. Задержки',
+    q: 'Почему для VR-игр критичен input lag меньше 20 мс?',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['укачива', 'мозг', 'движен', 'голов', 'мс', 'задержк'], minKeywords: 2 },
+    explanation: 'Мозг ожидает мгновенную реакцию картинки на движение головы. Задержка больше 20 мс вызывает рассогласование — вестибулярный аппарат получает сигнал не вовремя, возникает «укачивание» (motion sickness).',
+    weight: 20
+  },
+
+  /* ===== ТЕСТ ПО ПРАКТИКЕ ===== */
+  {
+    id: 'pt_q1', module: 'Практика',
+    q: 'В симуляторе планировщика вы запустили Round Robin с квантом 4 мс. Render имеет burst 8 мс. За сколько квантов он выполнится?',
+    type: 'numeric', expected: 2, opts: { tolerance: 0 },
+    hint: '8 / 4',
+    explanation: '8 мс / 4 мс = 2 кванта. Round Robin даёт по 4 мс, значит Render будет выполняться в 2 захода, между которыми ОС даст CPU другим потокам.',
+    weight: 15
+  },
+  {
+    id: 'pt_q2', module: 'Практика',
+    q: 'В симуляторе памяти вы загрузили 20 текстур по 256 MB. Сколько MB в VRAM?',
+    type: 'numeric', expected: 5120, opts: { tolerance: 0 },
+    hint: '20 × 256',
+    explanation: '20 × 256 = 5120 MB (5 ГБ). Это переполнит VRAM на большинстве видеокарт — начнётся вытеснение текстур в RAM.',
+    weight: 15
+  },
+  {
+    id: 'pt_q3', module: 'Практика',
+    q: 'В симуляторе потоков вы поставили Asset Loader в HIGH. Какой FPS покажет симулятор?',
+    type: 'numeric', expected: 35, opts: { tolerance: 0 },
+    hint: 'Симулятор вычитает 25 из базовых 60',
+    explanation: 'Симулятор даёт -25 FPS при Loader=HIGH. Итог: 60 - 25 = 35 FPS. Именно потому что Loader конкурирует с Render за CPU.',
+    weight: 15
+  },
+  {
+    id: 'pt_q4', module: 'Практика',
+    q: 'В симуляторе кэша вы прогнали 30 кадров и получили 24 HIT, 6 MISS. Какой hit rate в %?',
+    type: 'numeric', expected: 80, opts: { tolerance: 0 },
+    hint: '24 / 30 × 100',
+    explanation: '24 / 30 × 100 = 80%. Отличный hit rate — текстуры хорошо кэшируются, просадок из-за подгрузок почти нет.',
+    weight: 20
+  },
+  {
+    id: 'pt_q5', module: 'Практика',
+    q: 'В симуляторе кадра суммарное время = 18.5 мс при цели 60 FPS. Уложилась ли игра в бюджет?',
+    type: 'select',
+    options: ['Да, уложилась', 'Нет, превысила бюджет 16.67 мс'],
+    expected: 1,
+    explanation: '18.5 мс > 16.67 мс — бюджет превышен. FPS упадёт примерно до 54. Нужно оптимизировать самый тяжёлый этап кадра.',
+    weight: 15
+  },
+
+  /* ===== ТЕСТ ПО ТЕОРИИ ===== */
+  {
+    id: 'tt_q1', module: 'Теория',
+    q: 'Что такое frame budget?',
+    type: 'select',
+    options: ['Бюджет на покупку видеокарты', 'Время на один кадр при заданном FPS', 'Объём VRAM', 'Частота монитора'],
+    expected: 1,
+    explanation: 'Frame budget — время на подготовку одного кадра. При 60 FPS это 16.67 мс. Всё, что дольше — потеря кадра.',
+    weight: 10
+  },
+  {
+    id: 'tt_q2', module: 'Теория',
+    q: 'На каком этапе игрового кадра ОС передаёт события ввода в игру?',
+    type: 'select',
+    options: ['После рендера', 'В начале кадра, до update', 'Только при VSync', 'Никогда'],
+    expected: 1,
+    explanation: 'ОС обрабатывает ввод в начале кадра и передаёт события игре. Игра в update читает их и реагирует. Так ввод учитывается в текущем кадре.',
+    weight: 10
+  },
+  {
+    id: 'tt_q3', module: 'Теория',
+    q: 'Что такое DirectStorage в Windows 11?',
+    type: 'select',
+    options: ['Файловая система', 'Технология прямого чтения GPU с NVMe', 'Антивирус', 'Драйвер звука'],
+    expected: 1,
+    explanation: 'DirectStorage позволяет GPU читать данные с NVMe-диска напрямую, минуя CPU и RAM. Это радикально ускоряет загрузку уровней.',
+    weight: 15
+  },
+  {
+    id: 'tt_q4', module: 'Теория',
+    q: 'Почему kernel-level античит работает эффективнее user-level?',
+    type: 'textarea',
+    opts: { minLen: 60, keywords: ['ядр', 'доступ', 'память', 'процесс', 'обход', 'чит'], minKeywords: 3 },
+    explanation: 'Kernel-level античит работает в ядре ОС с максимальными правами. Он видит все процессы, драйверы, обращения к памяти. User-level можно обойти через хук API. Но kernel-античит требует подписанный драйвер и вызывает споры.',
+    weight: 20
+  },
+  {
+    id: 'tt_q5', module: 'Теория',
+    q: 'Что произойдёт с игрой, если поток физики опоздает на 2 кадра?',
+    type: 'textarea',
+    opts: { minLen: 50, keywords: ['рассинхрон', 'рывк', 'проход', 'кадр', 'позици'], minKeywords: 2 },
+    explanation: 'Поток физики обновляет позиции объектов. Если он опоздает, объекты будут в старых позициях, а рендер покажет уже новое состояние. Возникнет рассинхрон — рывки, «телепортация» объектов.',
+    weight: 20
+  }
+];
+
+/* =========================================================
+   ПРОВЕРКА ОТВЕТА
+   ========================================================= */
+
+function checkAnswer(question, value) {
+  const validator = VALIDATORS[question.type];
+  if (!validator) return false;
+  if (question.type === 'numeric') return validator(value, question.expected, question.opts);
+  if (question.type === 'textarea') return validator(value, question.expected, question.opts);
+  return validator(value, question.expected);
+}
+
+function getAnswerDisplay(question, value) {
+  if (value === undefined || value === null || value === '') return '—';
+  if (question.type === 'chips') {
+    if (!Array.isArray(value) || !value.length) return '—';
+    return value.map(i => question.options[i]).join(', ');
+  }
+  if (question.type === 'select') {
+    return question.options[Number(value)] ?? '—';
+  }
+  return String(value);
+}
+
+function getExpectedDisplay(question) {
+  if (question.type === 'chips') {
+    return question.expected.map(i => question.options[i]).join(', ');
+  }
+  if (question.type === 'select') {
+    return question.options[question.expected];
+  }
+  return String(question.expected);
+}
+
+/* =========================================================
+   МОДАЛКА ОТВЕТА
+   ========================================================= */
+
+function showAnswerModal(question, value, isCorrect) {
+  const modal = document.getElementById('answerModal');
+  const box = document.getElementById('answerModalBox');
+  const title = document.getElementById('answerModalTitle');
+  const your = document.getElementById('answerModalYour');
+  const correct = document.getElementById('answerModalCorrect');
+  const explanation = document.getElementById('answerModalExplanation');
+
+  box.classList.toggle('correct', isCorrect);
+  title.textContent = isCorrect ? '✓ Верный ответ!' : '✗ Неверный ответ';
+  title.style.color = isCorrect ? 'var(--success)' : 'var(--danger)';
+
+  const yourDisplay = getAnswerDisplay(question, value);
+  your.textContent = yourDisplay;
+  your.className = 'modal-value ' + (isCorrect ? 'correct-value' : 'wrong-value');
+
+  correct.textContent = getExpectedDisplay(question);
+
+  explanation.textContent = question.explanation || '—';
+
+  modal.classList.remove('hidden');
+}
+
+function closeAnswerModal() {
+  document.getElementById('answerModal').classList.add('hidden');
+}
+
+/* =========================================================
+   РЕНДЕР ЗАДАНИЙ С ОТВЕТАМИ
+   ========================================================= */
+
+function renderAnswerBlock(containerId, questions) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const totalWeight = questions.reduce((s, q) => s + (q.weight || 10), 0);
+
+  container.innerHTML = `
+    <div class="answer-block">
+      <h4>📝 Вопросы по модулю <span class="weight">Вес: ${totalWeight} XP · ${questions.length} вопросов</span></h4>
+      <div id="${containerId}_inner"></div>
+    </div>
+  `;
+
+  const inner = document.getElementById(`${containerId}_inner`);
+
+  questions.forEach((q, idx) => {
+    inner.appendChild(buildAnswerTask(q, idx));
+  });
+}
+
+function buildAnswerTask(question, index) {
+  const saved = state.answers[question.id];
+  const isAnswered = saved !== undefined;
+  const isCorrect = saved?.correct === true;
+
+  const task = document.createElement('div');
+  task.className = 'answer-task' + (isAnswered ? (isCorrect ? ' correct' : ' wrong locked') : '');
+  task.dataset.taskId = question.id;
+
+  // Заголовок
+  const header = document.createElement('div');
+  header.className = 'answer-task-header';
+  header.innerHTML = `
+    <span class="num">${index + 1}</span>
+    <span class="q-text">${escapeHtml(question.q)}</span>
+    ${isAnswered ? `<span class="status ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '✓' : '✗'}</span>` : ''}
+  `;
+  task.appendChild(header);
+
+  // Поле
+  let inputEl = null;
+  if (question.type === 'input' || question.type === 'numeric') {
+    inputEl = document.createElement('input');
+    inputEl.type = 'text';
+    inputEl.placeholder = question.type === 'numeric' ? 'Число…' : 'Введите ответ…';
+    inputEl.value = saved?.value ?? '';
+    inputEl.disabled = isAnswered;
+    task.appendChild(inputEl);
+  }
+  else if (question.type === 'select') {
+    inputEl = document.createElement('select');
+    inputEl.innerHTML = `<option value="">— Выберите —</option>` +
+      question.options.map((o, i) => `<option value="${i}" ${saved?.value == i ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+    inputEl.disabled = isAnswered;
+    task.appendChild(inputEl);
+  }
+  else if (question.type === 'textarea') {
+    inputEl = document.createElement('textarea');
+    inputEl.placeholder = 'Развёрнутый ответ…';
+    inputEl.value = saved?.value ?? '';
+    inputEl.disabled = isAnswered;
+    task.appendChild(inputEl);
+    const counter = document.createElement('div');
+    counter.className = 'char-counter';
+    counter.textContent = `${(saved?.value || '').length} / ${question.opts?.minLen || 30} символов`;
+    inputEl.addEventListener('input', () => {
+      counter.textContent = `${inputEl.value.length} / ${question.opts?.minLen || 30} символов`;
+    });
+    task.appendChild(counter);
+  }
+  else if (question.type === 'chips') {
+    const row = document.createElement('div');
+    row.className = 'chip-row';
+    const selected = new Set(saved?.value || []);
+    question.options.forEach((opt, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip' + (selected.has(i) ? ' selected' : '');
+      chip.textContent = opt;
+      chip.dataset.idx = i;
+      if (isAnswered) {
+        chip.style.pointerEvents = 'none';
+        if (question.expected.includes(i)) chip.classList.add('correct');
+        else if (selected.has(i)) chip.classList.add('wrong');
+        chip.classList.remove('selected');
+      } else {
+        chip.onclick = () => {
+          if (selected.has(i)) { selected.delete(i); chip.classList.remove('selected'); }
+          else { selected.add(i); chip.classList.add('selected'); }
+        };
+      }
+      row.appendChild(chip);
+    });
+    task.appendChild(row);
+    inputEl = { getValue: () => [...selected] };
+  }
+
+  // Кнопки
+  if (!isAnswered) {
+    const actions = document.createElement('div');
+    actions.className = 'answer-actions';
+
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = '✓ Проверить ответ';
+    btn.onclick = () => {
+      let value;
+      if (question.type === 'chips') value = inputEl.getValue();
+      else value = inputEl.value;
+
+      if (value === '' || value === undefined || (Array.isArray(value) && value.length === 0)) {
+        toast('Введите ответ', 'error');
+        return;
+      }
+
+      const correct = checkAnswer(question, value);
+      state.answers[question.id] = {
+        value,
+        correct,
+        at: new Date().toISOString(),
+        module: question.module,
+        question: question.q
+      };
+      state.attempts.push({
+        id: question.id,
+        value,
+        correct,
+        ts: Date.now(),
+        module: question.module,
+        question: question.q,
+        expected: question.expected
+      });
+
+      // XP
+      if (correct) {
+        state.xp += question.weight || 10;
+        soundSuccess();
+        confetti();
+      } else {
+        soundError();
+      }
+
+      saveState();
+
+      // Модалка
+      showAnswerModal(question, value, correct);
+
+      // Обновить UI карточки
+      task.classList.remove('wrong', 'correct');
+      task.classList.add(correct ? 'correct' : 'wrong', 'locked');
+      if (inputEl && inputEl.disabled !== undefined) inputEl.disabled = true;
+      if (question.type === 'chips') {
+        task.querySelectorAll('.chip').forEach((chip, i) => {
+          chip.style.pointerEvents = 'none';
+          chip.classList.remove('selected');
+          if (question.expected.includes(i)) chip.classList.add('correct');
+          else if (value.includes(i)) chip.classList.add('wrong');
+        });
+      }
+      const oldStatus = header.querySelector('.status');
+      if (oldStatus) oldStatus.remove();
+      const status = document.createElement('span');
+      status.className = 'status ' + (correct ? 'ok' : 'bad');
+      status.textContent = correct ? '✓' : '✗';
+      header.appendChild(status);
+
+      btn.remove();
+      hintBtn?.remove();
+    };
+    actions.appendChild(btn);
+
+    // Подсказка
+    if (question.hint) {
+      var hintBtn = document.createElement('button');
+      hintBtn.className = 'hint-btn';
+      hintBtn.textContent = '💡 Подсказка';
+      hintBtn.onclick = () => toast('💡 ' + question.hint, 'info');
+      actions.appendChild(hintBtn);
+    }
+
+    task.appendChild(actions);
+  }
+
+  return task;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* =========================================================
+   РЕНДЕР ВСЕХ БЛОКОВ ВОПРОСОВ
+   ========================================================= */
+
+const MODULES_WITH_QUESTIONS = {
+  procAnswerBlock: ['t3_q1', 't3_q2', 't3_q3', 't3_q4'],
+  tmAnswerBlock: ['t3_q2'],
+  schedAnswerBlock: ['t4_q1', 't4_q2', 't4_q3'],
+  frameAnswerBlock: ['t5_q1', 't5_q2', 't5_q3', 't1_q1', 't3_q1'],
+  threadsAnswerBlock: ['t6_q1', 't6_q2', 't6_q3', 't6_q4'],
+  memAnswerBlock: ['t2_q1', 't2_q2', 't2_q3', 't2_q4', 't7_q1', 't7_q2', 't7_q3'],
+  cacheAnswerBlock: ['t8_q1', 't8_q2', 't8_q3', 't8_q4'],
+  latencyAnswerBlock: ['t9_q1', 't9_q2', 't9_q3', 't9_q4'],
+  fsAnswerBlock: ['t1_q2', 't1_q3', 't1_q4'],
+  consoleAnswerBlock: []
+};
+
+function renderAllAnswerBlocks() {
+  Object.entries(MODULES_WITH_QUESTIONS).forEach(([containerId, questionIds]) => {
+    const questions = questionIds.map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
+    if (questions.length) renderAnswerBlock(containerId, questions);
+  });
+}
+
+/* =========================================================
+   ТЕСТЫ (два блока)
+   ========================================================= */
+
+function renderTest(containerId, filterModule, title) {
+  const questions = QUESTIONS.filter(q => q.module === filterModule);
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const totalW = questions.reduce((s, q) => s + (q.weight || 10), 0);
+  container.innerHTML = `
+    <div class="answer-block">
+      <h4>${title} <span class="weight">${questions.length} вопросов · ${totalW} XP</span></h4>
+      <div id="${containerId}_inner"></div>
+    </div>
+  `;
+  const inner = document.getElementById(`${containerId}_inner`);
+  questions.forEach((q, i) => inner.appendChild(buildAnswerTask(q, i)));
+}
+
+/* =========================================================
+   ПРОГРЕСС
+   ========================================================= */
+
+const ACHIEVEMENTS = [
+  { id: 'first_step', icon: '🎯', name: 'Первый шаг', desc: 'Первый ответ' },
+  { id: 'halfway', icon: '⚡', name: 'Полпути', desc: '50% правильных' },
+  { id: 'complete', icon: '🏆', name: 'Мастер', desc: '100%' },
+  { id: 'perfect_theory', icon: '📚', name: 'Теоретик', desc: 'Все теор. вопросы' },
+  { id: 'perfect_practice', icon: '🎮', name: 'Практик', desc: 'Все практические' },
+  { id: 'no_mistakes', icon: '💎', name: 'Без ошибок', desc: '5 подряд' },
+  { id: 'frame_master', icon: '🎬', name: 'Мастер кадра', desc: 'Все вопросы о кадре' },
+  { id: 'cache_master', icon: '🖼', name: 'Кэш-мастер', desc: 'Все вопросы о кэше' },
+  { id: 'night', icon: '🌙', name: 'Ночной кодер', desc: 'Ответ после 23:00' }
+];
+
+function unlockAchievement(id) {
+  if (state.achievements[id]) return;
+  state.achievements[id] = true;
+  const ach = ACHIEVEMENTS.find(a => a.id === id);
+  if (ach) {
+    toast(`${ach.icon} Достижение: ${ach.name}`, 'info');
+    confetti();
+  }
+  saveState();
+}
+
+function renderProgress() {
+  const total = QUESTIONS.length;
+  const answered = Object.keys(state.answers).length;
+  const correct = Object.values(state.answers).filter(a => a.correct).length;
+  const pct = Math.round((correct / total) * 100);
+  const totalXP = Object.values(state.answers).filter(a => a.correct)
+    .reduce((s, a) => s + (QUESTIONS.find(q => q.id === Object.keys(state.answers).find(k => state.answers[k] === a))?.weight || 10), 0);
+
+  document.getElementById('statProgress').textContent = pct + '%';
+  document.getElementById('statDone').textContent = `${correct}/${total}`;
+  document.getElementById('statXP').textContent = state.xp;
+  document.getElementById('statAch').textContent = Object.keys(state.achievements).length;
+  document.getElementById('statLevel').textContent = Math.floor(state.xp / 300) + 1;
+  document.getElementById('statFPS').textContent = state.bestFPS;
+
+  document.getElementById('mainProgress').style.width = pct + '%';
+  document.getElementById('progressBadge').textContent = pct + '%';
+
+  // Журнал
+  const tbody = document.querySelector('#journal tbody');
+  tbody.innerHTML = QUESTIONS.map(q => {
+    const a = state.answers[q.id];
+    const your = a ? getAnswerDisplay(q, a.value) : '—';
+    const exp = getExpectedDisplay(q);
+    const truncYour = your.length > 60 ? your.slice(0, 60) + '…' : your;
+    const truncExp = exp.length > 40 ? exp.slice(0, 40) + '…' : exp;
+    return `<tr>
+      <td style="font-size:12px">${escapeHtml(q.module)}</td>
+      <td style="font-size:12px">${escapeHtml(q.q.slice(0, 80))}${q.q.length > 80 ? '…' : ''}</td>
+      <td style="font-size:12px;font-family:monospace;color:${a?.correct ? 'var(--success)' : a ? 'var(--danger)' : 'var(--muted)'}">${escapeHtml(truncYour)}</td>
+      <td style="font-size:12px;font-family:monospace;color:var(--muted)">${escapeHtml(truncExp)}</td>
+      <td>${a ? (a.correct ? '✅' : '❌') : '⏳'}</td>
+      <td>${a?.correct ? q.weight : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Достижения
+  document.getElementById('achievementsList').innerHTML = ACHIEVEMENTS.map(a => `
+    <div class="ach-card ${state.achievements[a.id] ? 'unlocked' : ''}" title="${a.desc}">
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+    </div>
+  `).join('');
+
+  // Приветствие
+  const greet = document.getElementById('studentGreeting');
+  if (greet) {
+    const n = state.studentName || 'не указано';
+    const g = state.studentGroup ? ` (${state.studentGroup})` : '';
+    greet.innerHTML = `Студент: <b>${n}</b>${g} • Правильных ответов: <b>${correct}/${total}</b>`;
+  }
+
+  if (answered >= 1) unlockAchievement('first_step');
+  if (pct >= 50) unlockAchievement('halfway');
+  if (pct === 100) unlockAchievement('complete');
+
+  const theoryQs = QUESTIONS.filter(q => q.module === 'Теория');
+  const practiceQs = QUESTIONS.filter(q => q.module === 'Практика');
+  if (theoryQs.length && theoryQs.every(q => state.answers[q.id]?.correct)) unlockAchievement('perfect_theory');
+  if (practiceQs.length && practiceQs.every(q => state.answers[q.id]?.correct)) unlockAchievement('perfect_practice');
+}
+
+/* =========================================================
+   АНАЛИТИКА
+   ========================================================= */
+
+function renderAnalytics() {
+  const modules = [...new Set(QUESTIONS.map(q => q.module))];
+  const heat = document.getElementById('heatmap');
+  heat.innerHTML = modules.map(m => {
+    const qs = QUESTIONS.filter(q => q.module === m);
+    const done = qs.filter(q => state.answers[q.id]?.correct).length;
+    const pct = qs.length ? Math.round(done / qs.length * 100) : 0;
+    let color;
+    if (pct === 0) color = '#475569';
+    else if (pct < 40) color = '#ff3d71';
+    else if (pct < 70) color = '#ffaa00';
+    else if (pct < 100) color = '#00b8d9';
+    else color = '#00e676';
+    return `<div class="heat-cell" style="background:${color}">${m}<small>${done}/${qs.length} (${pct}%)</small></div>`;
+  }).join('');
+
+  const statsTbody = document.querySelector('#statsTable tbody');
+  statsTbody.innerHTML = modules.map(m => {
+    const qs = QUESTIONS.filter(q => q.module === m);
+    const answered = qs.filter(q => state.answers[q.id]);
+    const correct = qs.filter(q => state.answers[q.id]?.correct).length;
+    const avgScore = answered.length ? Math.round(correct / answered.length * 100) : 0;
+    return `<tr><td>${m}</td><td>${correct}</td><td>${qs.length}</td><td>${avgScore}%</td></tr>`;
+  }).join('');
+
+  const recs = [];
+  modules.forEach(m => {
+    const qs = QUESTIONS.filter(q => q.module === m);
+    const done = qs.filter(q => state.answers[q.id]?.correct).length;
+    if (done === 0) recs.push(`Пройдите модуль <b>${m}</b>`);
+    else if (done < qs.length) recs.push(`Продолжите <b>${m}</b> (${done}/${qs.length})`);
+  });
+  document.getElementById('recommendations').innerHTML = recs.length ? recs.map(r => `• ${r}`).join('<br>') : '🎉 Все модули пройдены!';
+
+  // Последние ответы
+  const at = document.querySelector('#attemptsTable tbody');
+  const recent = [...state.attempts].slice(-30).reverse();
+  at.innerHTML = recent.length ? recent.map(a => {
+    const q = QUESTIONS.find(x => x.id === a.id);
+    if (!q) return '';
+    const your = getAnswerDisplay(q, a.value);
+    const exp = getExpectedDisplay(q);
+    return `<tr>
+      <td style="font-size:12px">${escapeHtml(q.q.slice(0, 70))}${q.q.length > 70 ? '…' : ''}</td>
+      <td style="font-size:12px;font-family:monospace;color:${a.correct ? 'var(--success)' : 'var(--danger)'}">${escapeHtml(your.slice(0, 40))}${your.length > 40 ? '…' : ''}</td>
+      <td style="font-size:12px;font-family:monospace;color:var(--muted)">${escapeHtml(exp.slice(0, 40))}${exp.length > 40 ? '…' : ''}</td>
+      <td>${a.correct ? '✅' : '❌'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" style="color:var(--muted)">Пока нет ответов</td></tr>';
+}
+
+/* =========================================================
+   ЭКСПОРТ PDF — с ответами
+   ========================================================= */
+
+async function exportPDF() {
+  if (!window.jspdf || !window.html2canvas) { toast('Библиотеки не загружены', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+
+  const total = QUESTIONS.length;
+  const answered = Object.keys(state.answers).length;
+  const correct = Object.values(state.answers).filter(a => a.correct).length;
+  const pct = Math.round((correct / total) * 100);
+  const level = Math.floor(state.xp / 300) + 1;
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const modules = [...new Set(QUESTIONS.map(q => q.module))];
+  const answersRows = modules.map(m => {
+    const qs = QUESTIONS.filter(q => q.module === m);
+    const rows = qs.map(q => {
+      const a = state.answers[q.id];
+      const your = a ? getAnswerDisplay(q, a.value) : '—';
+      const exp = getExpectedDisplay(q);
+      const truncYour = your.length > 90 ? your.slice(0, 90) + '…' : your;
+      const truncExp = exp.length > 50 ? exp.slice(0, 50) + '…' : exp;
+      const statusColor = a?.correct ? '#16a34a' : a ? '#dc2626' : '#9ca3af';
+      return `<tr>
+        <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10.5px">${esc(q.q.length > 100 ? q.q.slice(0,100)+'…' : q.q)}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10.5px;font-family:monospace;color:${statusColor}">${esc(truncYour)}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10.5px;font-family:monospace;color:#6b7280">${esc(truncExp)}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:700;color:${statusColor}">${a?.correct ? '✓' : a ? '✗' : '—'}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10.5px;color:#6b7280">${a?.correct ? q.weight : '—'}</td>
+      </tr>`;
+    }).join('');
+    return `<tr style="background:#f3f4f6"><td colspan="5" style="padding:6px 8px;font-weight:700;color:#0ea5e9;font-size:11px">${esc(m)}</td></tr>${rows}`;
+  }).join('');
+
+  const achRows = ACHIEVEMENTS.map(a => {
+    const unlocked = state.achievements[a.id];
+    return `<div style="display:inline-block;padding:6px 10px;margin:3px;border-radius:6px;background:${unlocked ? '#fef3c7' : '#f9fafb'};border:1px solid ${unlocked ? '#f59e0b' : '#e5e7eb'};font-size:11px">
+      <span style="font-size:14px">${a.icon}</span>
+      <b style="color:${unlocked ? '#92400e' : '#9ca3af'};margin-left:4px">${esc(a.name)}</b>
+    </div>`;
+  }).join('');
+
+  const dateStr = new Date().toLocaleString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const html = document.createElement('div');
+  html.style.cssText = `position:fixed;left:-99999px;top:0;width:794px;padding:40px 40px;background:#fff;color:#111827;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.5;box-sizing:border-box;`;
+
+  html.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:start;border-bottom:3px solid #0ea5e9;padding-bottom:12px;margin-bottom:18px">
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#0ea5e9">🎮 GameOS Lab</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">Операционные системы в разработке игр</div>
+      </div>
+      <div style="text-align:right;font-size:10.5px;color:#6b7280">Отчёт сформирован<br><b style="color:#111827">${esc(dateStr)}</b></div>
+    </div>
+
+    <h1 style="font-size:16px;margin:0 0 14px">Отчёт о выполнении практикума</h1>
+
+    <div style="background:#f8fafc;border-left:4px solid #0ea5e9;padding:12px 16px;border-radius:6px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12px">
+        <div><span style="color:#6b7280">Дисциплина:</span> <b>Операционные системы и среды</b></div>
+        <div><span style="color:#6b7280">Специальность:</span> <b>Разработка компьютерных игр</b></div>
+        <div><span style="color:#6b7280">Студент:</span> <b>${esc(state.studentName || '—')}</b></div>
+        <div><span style="color:#6b7280">Группа:</span> <b>${esc(state.studentGroup || '—')}</b></div>
+      </div>
+    </div>
+
+    <h2 style="font-size:13px;margin:0 0 8px;color:#0ea5e9">📊 Сводка</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#0ea5e9">${pct}%</div>
+        <div style="font-size:10px;color:#6b7280">Прогресс</div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#16a34a">${correct}/${total}</div>
+        <div style="font-size:10px;color:#6b7280">Правильных</div>
+      </div>
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#d97706">${state.xp}</div>
+        <div style="font-size:10px;color:#6b7280">XP (ур. ${level})</div>
+      </div>
+      <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#9333ea">${Object.keys(state.achievements).length}</div>
+        <div style="font-size:10px;color:#6b7280">Достижений</div>
+      </div>
+    </div>
+
+    <h2 style="font-size:13px;margin:0 0 8px;color:#0ea5e9">📝 Ответы студента (детально)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:16px">
+      <thead>
+        <tr style="background:#0ea5e9;color:white">
+          <th style="padding:6px;text-align:left">Вопрос</th>
+          <th style="padding:6px;text-align:left;width:180px">Ваш ответ</th>
+          <th style="padding:6px;text-align:left;width:150px">Эталон</th>
+          <th style="padding:6px;text-align:center;width:40px">✓</th>
+          <th style="padding:6px;text-align:center;width:50px">Вес</th>
+        </tr>
+      </thead>
+      <tbody>${answersRows}</tbody>
+    </table>
+
+    <h2 style="font-size:13px;margin:0 0 8px;color:#0ea5e9">🏆 Достижения</h2>
+    <div style="margin-bottom:16px">${achRows}</div>
+
+    <div style="margin-top:30px;padding-top:14px;border-top:1px dashed #d1d5db;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:11px">
+      <div><div style="color:#6b7280;margin-bottom:22px">Подпись студента:</div><div style="border-bottom:1px solid #111827"></div></div>
+      <div><div style="color:#6b7280;margin-bottom:22px">Подпись преподавателя:</div><div style="border-bottom:1px solid #111827"></div></div>
+    </div>
+  `;
+
+  document.body.appendChild(html);
+  try {
+    const canvas = await html2canvas(html, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    document.body.removeChild(html);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let yOffset = 0, page = 0;
+    while (yOffset < imgH) {
+      if (page > 0) doc.addPage();
+      const sliceH = Math.min(pageH, imgH - yOffset);
+      const sliceCanvas = document.createElement('canvas');
+      const scale = canvas.width / imgW;
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = sliceH * scale;
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, yOffset * scale, canvas.width, sliceH * scale, 0, 0, sliceCanvas.width, sliceCanvas.height);
+      doc.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgW, sliceH);
+      yOffset += sliceH;
+      page++;
+      if (page > 40) break;
+    }
+    const safeName = (state.studentName || 'student').replace(/\s+/g, '_').replace(/[^\w\-_]/g, '');
+    const safeGroup = (state.studentGroup || '').replace(/\s+/g, '_').replace(/[^\w\-_]/g, '');
+    doc.save(`GameOS_${safeName}${safeGroup ? '_' + safeGroup : ''}_${new Date().toISOString().slice(0,10)}.pdf`);
+    toast('📄 PDF сохранён с ответами');
+  } catch (err) {
+    if (document.body.contains(html)) document.body.removeChild(html);
+    toast('Ошибка PDF: ' + err.message, 'error');
+  }
+}
+
+function exportCSV() {
+  let csv = 'Модуль;Вопрос;Ваш ответ;Эталон;Правильно;Вес;Дата\n';
+  QUESTIONS.forEach(q => {
+    const a = state.answers[q.id];
+    const your = a ? getAnswerDisplay(q, a.value) : '';
+    const exp = getExpectedDisplay(q);
+    const clean = s => String(s).replace(/[;\n\r]/g, ' ');
+    csv += `${clean(q.module)};${clean(q.q)};${clean(your)};${clean(exp)};${a?.correct ? 'Да' : a ? 'Нет' : '—'};${a?.correct ? q.weight : 0};${a?.at ? new Date(a.at).toLocaleString('ru-RU') : ''}\n`;
+  });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gameos_answers_${Date.now()}.csv`;
+  a.click();
+  toast('📊 CSV с ответами сохранён');
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({ state, settings }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gameos_backup_${Date.now()}.json`;
+  a.click();
+  toast('💾 JSON сохранён');
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (data.state) { state = { ...defaultState, ...data.state }; saveState(); }
+        if (data.settings) { settings = { ...defaultSettings, ...data.settings }; saveSettings(); applySettings(); }
+        toast('📥 Импортировано');
+        renderAll();
+      } catch { toast('Ошибка чтения', 'error'); }
+    };
+    r.readAsText(f);
+  };
+  input.click();
+}
+
+/* =========================================================
+   СИМУЛЯТОРЫ (упрощённые — логика сохранена, добавлены только вопросы)
+   ========================================================= */
+
+// Процессы
+const PROC_SCENES = {
+  menu: { name: 'Меню', processes: [
+    { pid: 1024, name: 'game.exe', state: 'running', cpu: 12, ram: 850, threads: [{name:'Main',prio:'normal',cpu:4},{name:'Render',prio:'normal',cpu:5}] },
+    { pid: 892, name: 'dwm.exe', state: 'running', cpu: 3, ram: 85, threads: [] },
+    { pid: 3210, name: 'Steam.exe', state: 'sleeping', cpu: 1, ram: 240, threads: [] },
+    { pid: 1480, name: 'nvcontainer.exe', state: 'running', cpu: 2, ram: 95, threads: [] }
+  ]},
+  loading: { name: 'Загрузка', processes: [
+    { pid: 1024, name: 'game.exe', state: 'running', cpu: 45, ram: 2450, threads: [{name:'Main',prio:'high',cpu:8},{name:'Asset Loader',prio:'normal',cpu:22},{name:'Decompression',prio:'normal',cpu:4}] },
+    { pid: 7724, name: 'antimalware.exe', state: 'running', cpu: 12, ram: 180, threads: [] },
+    { pid: 1480, name: 'nvcontainer.exe', state: 'running', cpu: 8, ram: 95, threads: [] },
+    { pid: 4, name: 'System', state: 'running', cpu: 3, ram: 12, threads: [] }
+  ]},
+  gameplay: { name: 'Геймплей', processes: [
+    { pid: 1024, name: 'game.exe', state: 'running', cpu: 78, ram: 3800, threads: [
+      {name:'Main',prio:'high',cpu:18},{name:'Render',prio:'high',cpu:22},{name:'Physics',prio:'high',cpu:15},{name:'AI',prio:'normal',cpu:12},{name:'Audio',prio:'normal',cpu:5}
+    ]},
+    { pid: 1480, name: 'nvcontainer.exe', state: 'running', cpu: 12, ram: 95, threads: [] },
+    { pid: 9912, name: 'Discord.exe', state: 'sleeping', cpu: 2, ram: 320, threads: [] },
+    { pid: 4, name: 'System', state: 'running', cpu: 5, ram: 12, threads: [] }
+  ]},
+  multiplayer: { name: 'Мультиплеер', processes: [
+    { pid: 1024, name: 'game.exe', state: 'running', cpu: 72, ram: 3600, threads: [{name:'Network',prio:'high',cpu:14},{name:'Render',prio:'high',cpu:20}] },
+    { pid: 9912, name: 'Discord.exe', state: 'running', cpu: 8, ram: 340, threads: [] },
+    { pid: 1480, name: 'nvcontainer.exe', state: 'running', cpu: 10, ram: 95, threads: [] }
+  ]},
+  paused: { name: 'Пауза', processes: [
+    { pid: 1024, name: 'game.exe', state: 'suspended', cpu: 1, ram: 3800, threads: [{name:'Main',prio:'normal',cpu:0,state:'suspended'}] },
+    { pid: 892, name: 'dwm.exe', state: 'running', cpu: 3, ram: 85, threads: [] },
+    { pid: 3210, name: 'Steam.exe', state: 'running', cpu: 5, ram: 240, threads: [] }
+  ]}
+};
+let currentProcScene = 'loading';
+let selectedProcPid = null;
+
+function renderProcesses() {
+  const scene = PROC_SCENES[currentProcScene];
+  document.getElementById('procTime').textContent = new Date().toLocaleTimeString('ru-RU');
+  const tree = document.getElementById('procTree');
+  tree.innerHTML = scene.processes.map(p => `
+    <div class="proc-node ${selectedProcPid === p.pid ? 'selected' : ''}" data-pid="${p.pid}">
+      <span class="indent">●</span>
+      <span class="pid">PID ${p.pid}</span>
+      <span>${p.name}</span>
+      <span class="state-badge state-${p.state}">${p.state}</span>
+      <span style="margin-left:auto;font-weight:700;color:${p.cpu > 50 ? 'var(--danger)' : p.cpu > 20 ? 'var(--warning)' : 'var(--success)'}">${p.cpu}%</span>
+    </div>
+  `).join('');
+  tree.querySelectorAll('.proc-node').forEach(el => {
+    el.onclick = () => {
+      selectedProcPid = +el.dataset.pid;
+      renderProcesses();
+      renderProcDetails(selectedProcPid);
+    };
+  });
+  if (selectedProcPid) renderProcDetails(selectedProcPid);
+}
+
+function renderProcDetails(pid) {
+  const scene = PROC_SCENES[currentProcScene];
+  const p = scene.processes.find(x => x.pid === pid);
+  if (!p) return;
+  document.getElementById('procDetails').innerHTML = `
+    <h4>⚙ ${p.name}</h4>
+    <div class="row"><span>PID</span><b>${p.pid}</b></div>
+    <div class="row"><span>Состояние</span><b>${p.state}</b></div>
+    <div class="row"><span>CPU</span><b>${p.cpu}%</b></div>
+    <div class="row"><span>RAM</span><b>${p.ram} MB</b></div>
+    ${p.threads.length ? `<h4 style="margin-top:14px">🧵 Потоки</h4>${p.threads.map(t => `
+      <div class="thread-item"><span>${t.name}</span><span class="prio prio-${t.prio}">${t.prio.toUpperCase()}</span></div>
+    `).join('')}` : ''}
+  `;
+}
+
+// Диспетчер
+let taskmgrProcesses = [
+  { pid: 4, name: 'System', cpu: 1, ram: 12, protected: true },
+  { pid: 892, name: 'dwm.exe', cpu: 3, ram: 85, protected: true },
+  { pid: 1024, name: 'explorer.exe', cpu: 2, ram: 120, protected: true },
+  { pid: 1480, name: 'nvcontainer.exe', cpu: 2, ram: 95 },
+  { pid: 3210, name: 'Steam.exe', cpu: 1, ram: 240 }
+];
+let taskmgrGameRunning = false;
+let taskmgrInterval = null;
+let taskmgrSelectedPid = null;
+
+function renderTaskmgr() {
+  const sorted = [...taskmgrProcesses].sort((a, b) => b.cpu - a.cpu);
+  document.getElementById('taskmgrBody').innerHTML = sorted.map(p => `
+    <div class="taskmgr-row ${taskmgrSelectedPid === p.pid ? 'highlight' : ''}" data-pid="${p.pid}">
+      <span class="num">${p.pid}</span>
+      <span>${p.name}</span>
+      <span><div class="cpu-bar"><div style="width:${p.cpu}%"></div></div><span style="font-size:10px">${p.cpu.toFixed(0)}%</span></span>
+      <span class="ram">${p.ram} MB</span>
+      <span>${(p.disk || 0)} MB/s</span>
+      <span class="state" style="color:var(--success)">RUNNING</span>
+    </div>
+  `).join('');
+  document.querySelectorAll('.taskmgr-row').forEach(r => {
+    r.onclick = () => { taskmgrSelectedPid = +r.dataset.pid; renderTaskmgr(); };
+  });
+}
+
+function initTaskmgr() {
+  document.getElementById('tmStart').onclick = () => {
+    if (taskmgrGameRunning) { toast('Уже запущено', 'info'); return; }
+    taskmgrGameRunning = true;
+    taskmgrProcesses.push({ pid: 10000 + Math.floor(Math.random() * 5000), name: 'game.exe', cpu: 45, ram: 2450, disk: 8 });
+    renderTaskmgr();
+    toast('🎮 Игра запущена');
+    if (taskmgrInterval) clearInterval(taskmgrInterval);
+    taskmgrInterval = setInterval(() => {
+      taskmgrProcesses.forEach(p => {
+        p.cpu = Math.max(0, Math.min(90, p.cpu + (Math.random() - 0.5) * 10));
+      });
+      renderTaskmgr();
+    }, 1500);
+  };
+  document.getElementById('tmLoad').onclick = () => {
+    if (!taskmgrGameRunning) { toast('Сначала запустите игру', 'error'); return; }
+    if (!taskmgrProcesses.find(p => p.name === 'AssetLoader.exe')) {
+      taskmgrProcesses.push({ pid: 20000 + Math.floor(Math.random() * 5000), name: 'AssetLoader.exe', cpu: 55, ram: 800, disk: 85 });
+    }
+    renderTaskmgr();
+    toast('📥 Загрузка началась');
+  };
+  document.getElementById('tmKill').onclick = () => {
+    if (!taskmgrSelectedPid) { toast('Выберите процесс', 'error'); return; }
+    const p = taskmgrProcesses.find(x => x.pid === taskmgrSelectedPid);
+    if (p?.protected) { toast('❌ Системный процесс защищён', 'error'); return; }
+    taskmgrProcesses = taskmgrProcesses.filter(x => x.pid !== taskmgrSelectedPid);
+    taskmgrSelectedPid = null;
+    renderTaskmgr();
+    toast('✖ Процесс завершён');
+  };
+  renderTaskmgr();
+}
+
+// Планировщик
+function runScheduler() {
+  const procs = document.getElementById('schedInput').value.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => {
+    const [name, burst, prio] = s.split(':').map(x => x.trim());
+    return { name: name || `P${i+1}`, burst: +burst || 1, prio: +prio || 1, color: ['#00d9ff','#00e676','#ffaa00','#b388ff','#ff3d71'][i % 5] };
+  });
+  const algo = document.getElementById('schedAlgo').value;
+  const quantum = +document.getElementById('schedQuantum').value || 4;
+  const remaining = procs.map(p => ({ ...p, left: p.burst, finish: 0 }));
+  const timeline = [];
+  let t = 0;
+  if (algo === 'fcfs') {
+    remaining.forEach(p => { for (let k = 0; k < p.burst; k++) timeline.push({ proc: p.name, color: p.color }); p.finish = t + p.burst; t += p.burst; });
+  } else if (algo === 'priority') {
+    while (remaining.some(p => p.left > 0)) {
+      const active = remaining.filter(p => p.left > 0).sort((a, b) => b.prio - a.prio);
+      const p = active[0];
+      timeline.push({ proc: p.name, color: p.color });
+      p.left--; t++;
+      if (p.left === 0) p.finish = t;
+    }
+  } else {
+    const queue = [...remaining];
+    while (queue.some(p => p.left > 0)) {
+      const p = queue.shift();
+      if (p.left <= 0) { queue.push(p); continue; }
+      const slice = Math.min(quantum, p.left);
+      for (let k = 0; k < slice; k++) timeline.push({ proc: p.name, color: p.color });
+      p.left -= slice; t += slice;
+      if (p.left === 0) p.finish = t;
+      queue.push(p);
+    }
+  }
+  document.getElementById('schedTimeline').innerHTML = timeline.map(c => {
+    const w = 100 / timeline.length;
+    return `<div class="sched-slice" style="background:${c.color};width:${w}%">${timeline.length <= 40 ? c.proc.charAt(0) : ''}</div>`;
+  }).join('');
+  document.getElementById('schedLegend').innerHTML = remaining.map(p => `<span style="color:${p.color}">${p.name} (burst ${p.burst})</span>`).join('');
+  document.getElementById('schedMetrics').innerHTML = `
+    <div class="info-card"><h4>Общее время</h4><p style="font-size:20px;color:var(--text);font-weight:700">${t} мс</p></div>
+    <div class="info-card"><h4>Квант</h4><p style="font-size:20px;color:var(--text);font-weight:700">${quantum} мс</p></div>
+    <div class="info-card"><h4>Процессов</h4><p style="font-size:20px;color:var(--text);font-weight:700">${procs.length}</p></div>
+  `;
+}
+
+// Кадр
+function updateFrameBudget() {
+  const targetFps = +document.getElementById('targetFps').value;
+  const budgetMs = 1000 / targetFps;
+  document.getElementById('targetFpsVal').textContent = targetFps;
+  document.getElementById('frameBudgetVal').textContent = budgetMs.toFixed(2);
+  const costs = {
+    render: +document.getElementById('renderCost').value,
+    physics: +document.getElementById('physicsCost').value,
+    ai: +document.getElementById('aiCost').value,
+    audio: +document.getElementById('audioCost').value,
+    io: +document.getElementById('ioCost').value
+  };
+  ['render','physics','ai','audio','io'].forEach(k => document.getElementById(k+'Val').textContent = costs[k].toFixed(1));
+  const total = Object.values(costs).reduce((s, v) => s + v, 0);
+  const slack = budgetMs - total;
+  const realFps = total > 0 ? Math.round(1000 / total) : 999;
+  const tl = document.getElementById('frameTimeline');
+  tl.innerHTML = '';
+  const scaleMax = Math.max(budgetMs, total) * 1.1;
+  let cursor = 0;
+  const cats = [['render','Render','render'],['physics','Physics','physics'],['ai','AI','ai'],['audio','Audio','audio'],['io','I/O','io']];
+  cats.forEach(([id, name, cls]) => {
+    const cost = costs[id];
+    if (cost <= 0) return;
+    const bar = document.createElement('div');
+    bar.className = 'frame-bar ' + cls;
+    bar.style.left = (cursor / scaleMax * 100) + '%';
+    bar.style.width = (cost / scaleMax * 100) + '%';
+    bar.textContent = cost >= 1.5 ? name : '';
+    tl.appendChild(bar);
+    cursor += cost;
+  });
+  const marker = document.createElement('div');
+  marker.className = 'frame-marker';
+  marker.style.left = (budgetMs / scaleMax * 100) + '%';
+  marker.dataset.label = budgetMs.toFixed(1) + ' мс';
+  tl.appendChild(marker);
+  document.getElementById('totalFrameTime').textContent = total.toFixed(1) + ' мс';
+  document.getElementById('frameSlack').textContent = slack.toFixed(1) + ' мс';
+  document.getElementById('realFps').textContent = realFps;
+  document.getElementById('totalFrameTime').className = 'value ' + (total <= budgetMs ? 'ok' : total <= budgetMs * 1.3 ? 'warn' : 'bad');
+  document.getElementById('frameSlack').className = 'value ' + (slack > 2 ? 'ok' : slack > 0 ? 'warn' : 'bad');
+  document.getElementById('realFps').className = 'value ' + (realFps >= targetFps ? 'ok' : realFps >= targetFps * 0.7 ? 'warn' : 'bad');
+  if (realFps > state.bestFPS) { state.bestFPS = realFps; saveState(); }
+}
+
+// Потоки
+const THREADS = [
+  { id: 'render', name: 'Render Thread', weight: 35, priority: 2 },
+  { id: 'physics', name: 'Physics Thread', weight: 20, priority: 2 },
+  { id: 'ai', name: 'AI Thread', weight: 15, priority: 1 },
+  { id: 'audio', name: 'Audio Thread', weight: 10, priority: 1 },
+  { id: 'loader', name: 'Asset Loader', weight: 20, priority: 0 },
+  { id: 'network', name: 'Network Thread', weight: 15, priority: 1 }
+];
+const PRIORITIES = ['LOW', 'NORMAL', 'HIGH'];
+
+function renderThreads() {
+  const totalWeight = THREADS.reduce((s, t) => s + t.weight * (t.priority + 1), 0);
+  document.getElementById('threadsContainer').innerHTML = THREADS.map((t, i) => {
+    const share = Math.round((t.weight * (t.priority + 1)) / totalWeight * 100);
+    const cls = share > 45 ? 'bad' : share > 30 ? 'warn' : 'ok';
+    return `<div class="thread-row ${share > 45 ? 'hogging' : ''}">
+      <div class="thread-name">${t.name}</div>
+      <div class="thread-priority-btns">
+        ${PRIORITIES.map((p, pi) => `<button data-t="${i}" data-p="${pi}" class="${t.priority === pi ? 'active' : ''}">${p}</button>`).join('')}
+      </div>
+      <div class="thread-cpu ${cls}">${share}%</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('#threadsContainer button').forEach(b => {
+    b.onclick = () => {
+      THREADS[+b.dataset.t].priority = +b.dataset.p;
+      renderThreads();
+      updateSimFps();
+    };
+  });
+}
+
+function updateSimFps() {
+  const r = THREADS.find(t => t.id === 'render');
+  const p = THREADS.find(t => t.id === 'physics');
+  const l = THREADS.find(t => t.id === 'loader');
+  let fps = 60;
+  let verdict = 'Сбалансировано.';
+  if (r.priority < 2) { fps -= 20; verdict = '⚠ Render с низким приоритетом'; }
+  if (p.priority < 2) { fps -= 15; verdict = '⚠ Physics с низким приоритетом'; }
+  if (l.priority === 2) { fps -= 25; verdict = '⚠ Loader с HIGH конкурирует с Render'; }
+  fps = Math.max(15, fps);
+  const el = document.getElementById('simFps');
+  el.textContent = fps;
+  el.className = 'fps-number ' + (fps >= 55 ? 'good' : fps >= 40 ? 'warn' : 'bad');
+  document.getElementById('simVerdict').textContent = verdict;
+  if (fps > state.bestFPS) { state.bestFPS = fps; saveState(); }
+}
+
+// Память
+const MEM_LIMITS = { vram: 8192, ram: 16384 };
+let memUsage = { vram: 0, ram: 0 };
+
+function initMemoryPanels() {
+  ['vramCanvas','ramCanvas'].forEach(id => {
+    const c = document.getElementById(id);
+    for (let i = 0; i < 20; i++) {
+      const b = document.createElement('div');
+      b.className = 'load-bar';
+      b.style.left = (i * 5) + '%';
+      b.style.height = '0%';
+      c.appendChild(b);
+    }
+  });
+  document.querySelectorAll('[data-mem-action]').forEach(btn => {
+    btn.onclick = () => handleMemAction(btn.dataset.memAction);
+  });
+  updateMemVisuals();
+}
+
+function handleMemAction(action) {
+  let msg = '';
+  if (action === 'load-texture') { memUsage.vram += 256; msg = '🖼 Текстура 4K (256 MB VRAM)'; if (memUsage.vram > MEM_LIMITS.vram) { memUsage.ram += 512; msg = '⚠ VRAM переполнена! Вытеснение в RAM'; } }
+  else if (action === 'load-mesh') { memUsage.ram += 64; msg = '📦 Меш (64 MB RAM)'; }
+  else if (action === 'load-audio') { memUsage.ram += 32; msg = '🔊 Звук (32 MB RAM)'; }
+  else if (action === 'spawn') { memUsage.ram += 128; msg = '🎯 1000 объектов (+128 MB)'; }
+  else if (action === 'release') { memUsage = { vram: 0, ram: 0 }; msg = '🗑 Выгружено'; }
+  const log = document.getElementById('memLog');
+  if (log.querySelector('span[style*="muted"]')) log.innerHTML = '';
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString('ru-RU')}] ${msg}`;
+  line.style.color = msg.includes('⚠') ? 'var(--danger)' : msg.includes('🗑') ? 'var(--warning)' : 'var(--success)';
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+  updateMemVisuals();
+}
+
+function updateMemVisuals() {
+  const vp = Math.min(100, memUsage.vram / MEM_LIMITS.vram * 100);
+  const rp = Math.min(100, memUsage.ram / MEM_LIMITS.ram * 100);
+  document.getElementById('vramValue').textContent = `${memUsage.vram} / ${MEM_LIMITS.vram} MB (${vp.toFixed(0)}%)`;
+  document.getElementById('ramValue').textContent = `${memUsage.ram} / ${MEM_LIMITS.ram} MB (${rp.toFixed(0)}%)`;
+  document.querySelectorAll('#vramCanvas .load-bar').forEach((b, i) => {
+    b.style.height = Math.min(100, Math.max(0, (vp - i * 5) * 20)) + '%';
+    b.style.background = vp > 90 ? 'linear-gradient(180deg,#ff3d71,#b71c1c)' : vp > 70 ? 'linear-gradient(180deg,#ffaa00,#f57c00)' : 'linear-gradient(180deg,var(--gpu),#33691e)';
+  });
+  document.querySelectorAll('#ramCanvas .load-bar').forEach((b, i) => {
+    b.style.height = Math.min(100, Math.max(0, (rp - i * 5) * 20)) + '%';
+    b.style.background = rp > 90 ? 'linear-gradient(180deg,#ff3d71,#b71c1c)' : rp > 70 ? 'linear-gradient(180deg,#ffaa00,#f57c00)' : 'linear-gradient(180deg,var(--cpu),#b71c1c)';
+  });
+}
+
+// Кэш
+const CACHE_SIZE = 8;
+const TOTAL_TEXTURES = 24;
+let cacheSlots = [];
+let cacheHits = 0;
+let cacheMisses = 0;
+
+function initCache() {
+  document.getElementById('cacheRequest').onclick = () => requestTexture();
+  document.getElementById('cacheAuto').onclick = runAutoCache;
+  document.getElementById('cacheClear').onclick = clearCache;
+  renderCache();
+}
+
+function renderCache() {
+  const grid = document.getElementById('cacheGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < CACHE_SIZE; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'cache-slot';
+    const tex = cacheSlots[i];
+    if (tex !== undefined) { slot.textContent = tex; slot.classList.add('hit'); }
+    else slot.textContent = '—';
+    grid.appendChild(slot);
+  }
+  document.getElementById('cacheHits').textContent = cacheHits;
+  document.getElementById('cacheMisses').textContent = cacheMisses;
+  const total = cacheHits + cacheMisses;
+  document.getElementById('cacheHitRate').textContent = total ? Math.round(cacheHits / total * 100) + '%' : '0%';
+}
+
+function requestTexture() {
+  const tex = Math.floor(Math.random() * TOTAL_TEXTURES);
+  const hit = cacheSlots.includes(tex);
+  const log = document.getElementById('cacheLog');
+  if (log.querySelector('span[style*="muted"]')) log.innerHTML = '';
+  if (hit) { cacheHits++; logCache(`🖼 Текстура ${tex} — HIT`, 'var(--success)'); }
+  else { cacheMisses++; logCache(`🖼 Текстура ${tex} — MISS`, 'var(--warning)'); if (cacheSlots.length >= CACHE_SIZE) cacheSlots.shift(); cacheSlots.push(tex); }
+  renderCache();
+}
+
+function runAutoCache() {
+  cacheHits = 0; cacheMisses = 0; cacheSlots = [];
+  let i = 0;
+  const interval = setInterval(() => {
+    requestTexture();
+    i++;
+    if (i >= 30) {
+      clearInterval(interval);
+      logCache(`✓ Прогон завершён. Hit rate: ${Math.round(cacheHits/(cacheHits+cacheMisses)*100)}%`, 'var(--accent)');
+    }
+  }, 120);
+}
+
+function clearCache() {
+  cacheSlots = []; cacheHits = 0; cacheMisses = 0;
+  renderCache();
+  logCache('🗑 Кэш очищен', 'var(--muted)');
+}
+
+function logCache(msg, color) {
+  const log = document.getElementById('cacheLog');
+  if (log.querySelector('span[style*="muted"]')) log.innerHTML = '';
+  const line = document.createElement('div');
+  line.textContent = msg;
+  line.style.color = color;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Задержки
+function calcLatency() {
+  const usbPoll = +document.getElementById('usbPoll').value;
+  const monitorHz = +document.getElementById('monitorHz').value;
+  const vsync = document.getElementById('vsyncOn').checked;
+  const usbMs = 1000 / usbPoll;
+  const osMs = 1.5;
+  const gameMs = 16.67;
+  const gpuMs = 8;
+  const monitorMs = 1000 / monitorHz / 2;
+  const vsyncExtra = vsync ? 1000 / monitorHz : 0;
+  const segments = [
+    { name: 'USB polling', ms: usbMs, color: '#ff6b6b' },
+    { name: 'ОС', ms: osMs, color: '#ffaa00' },
+    { name: 'Игра', ms: gameMs, color: '#ffd93d' },
+    { name: 'GPU', ms: gpuMs, color: '#76ff03' },
+    { name: 'Монитор', ms: monitorMs, color: '#00d9ff' },
+    { name: 'VSync', ms: vsyncExtra, color: '#b388ff' }
+  ].filter(s => s.ms > 0);
+  const total = segments.reduce((s, x) => s + x.ms, 0);
+  document.getElementById('latencyBar').innerHTML = segments.map(s => `<div class="latency-segment" style="background:${s.color};width:${s.ms/total*100}%" title="${s.name}">${s.ms >= 2 ? s.ms.toFixed(1) + ' мс' : ''}</div>`).join('');
+  document.getElementById('latencyBreakdown').innerHTML = segments.map(s => `<div style="background:var(--bg);padding:10px;border-radius:8px;text-align:center;border:1px solid var(--panel-2)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">${s.name}</div><div style="font-size:18px;font-weight:800;color:${s.color};margin-top:4px;font-family:monospace">${s.ms.toFixed(1)} мс</div></div>`).join('');
+  toast(`Общий input lag: ${total.toFixed(1)} мс`, total < 30 ? 'success' : 'info');
+}
+
+// ФС
+const FS_ASSETS = [
+  { path: '/Game/', type: 'dir' },
+  { path: '/Game/Content/Textures/hero_4k.png', type: 'file', size: 52428800, type_res: 'Diffuse 4K', stream: false },
+  { path: '/Game/Content/Textures/env.pak', type: 'file', size: 524288000, type_res: 'Atlas окружения', stream: true },
+  { path: '/Game/Content/Meshes/level.pak', type: 'file', size: 262144000, type_res: 'Пак уровня', stream: true },
+  { path: '/Game/Content/Audio/theme.ogg', type: 'file', size: 10485760, type_res: 'Музыка', stream: true },
+  { path: '/Game/Content/Video/intro.mp4', type: 'file', size: 314572800, type_res: 'Интро 4K', stream: true },
+  { path: '/Game/Binaries/game.exe', type: 'file', size: 78643200, type_res: 'Исполняемый', stream: false }
+];
+
+function renderFS() {
+  const tree = document.getElementById('fsTree');
+  tree.innerHTML = FS_ASSETS.map((f, i) => {
+    const depth = (f.path.match(/\//g) || []).length - 1;
+    const name = f.path.split('/').filter(Boolean).pop() + (f.type === 'dir' ? '/' : '');
+    const icon = f.type === 'dir' ? '📁' : f.stream ? '🎞' : '📄';
+    return `<div style="margin-left:${depth * 14}px"><span data-idx="${i}" style="cursor:pointer;color:${f.type === 'dir' ? 'var(--warning)' : 'var(--muted)'}">${icon} ${name}</span></div>`;
+  }).join('');
+  tree.querySelectorAll('[data-idx]').forEach(el => {
+    el.onclick = () => {
+      const f = FS_ASSETS[+el.dataset.idx];
+      const d = document.getElementById('fsDetails');
+      if (f.type === 'dir') { d.innerHTML = '<p style="color:var(--muted);text-align:center">Каталог</p>'; return; }
+      const sizeMB = (f.size / 1048576).toFixed(1);
+      d.innerHTML = `
+        <h4 style="color:var(--accent);margin-bottom:12px">📄 ${f.path}</h4>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--panel-2)"><span style="color:var(--muted)">Тип:</span><b>${f.type_res}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--panel-2)"><span style="color:var(--muted)">Размер:</span><b style="color:var(--accent);font-family:monospace">${sizeMB} MB</b></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--muted)">Стриминг:</span><b style="color:${f.stream ? 'var(--warning)' : 'var(--success)'}">${f.stream ? 'Да' : 'Нет'}</b></div>
+      `;
+    };
+  });
+}
+
+// Терминал
+const TERMINAL_COMMANDS = {
+  help: () => 'Команды: help, fps, gpu, cpu, mem, threads, processes, drawcalls, textures, pause, resume, profile, clear',
+  fps: () => `FPS: ${state.bestFPS} | Frame time: ${(1000/state.bestFPS).toFixed(2)} мс`,
+  gpu: () => `GPU: RTX 4070 | Load 78% | VRAM ${memUsage.vram}/8192 MB`,
+  cpu: () => `CPU: i7-13700K | Main 45% | Render 82%`,
+  mem: () => `RAM ${memUsage.ram}/16384 MB | VRAM ${memUsage.vram}/8192 MB`,
+  threads: () => THREADS.map(t => `  ${t.name.padEnd(20)} [${PRIORITIES[t.priority]}]`).join('\n'),
+  processes: () => PROC_SCENES[currentProcScene].processes.map(p => `  ${p.pid} ${p.name} ${p.cpu}%`).join('\n'),
+  drawcalls: () => `Draw calls: 1247 | Triangles: 2.4M`,
+  textures: () => `Кэш: ${cacheSlots.length}/8 | HIT ${cacheHits} MISS ${cacheMisses}`,
+  pause: () => '⏸ Пауза',
+  resume: () => '▶ Возобновлено',
+  profile: () => 'Профилирование: Render 6.2 мс, Physics 3.1 мс, AI 2.4 мс',
+  clear: () => '__CLEAR__'
+};
+
+function initTerminal() {
+  const input = document.getElementById('terminalInput');
+  const hist = document.getElementById('terminalHistory');
+  const out = document.getElementById('terminalOutput');
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const cmdLine = input.value.trim();
+    if (!cmdLine) return;
+    input.value = '';
+    const line = document.createElement('div');
+    line.className = 'line';
+    line.innerHTML = `<span class="prompt">dev@gameos:~$</span> ${escapeHtml(cmdLine)}`;
+    hist.appendChild(line);
+    const [cmd, ...args] = cmdLine.split(/\s+/);
+    const fn = TERMINAL_COMMANDS[cmd.toLowerCase()];
+    if (!fn) {
+      const err = document.createElement('div');
+      err.className = 'line error';
+      err.textContent = `Не найдено: ${cmd}`;
+      hist.appendChild(err);
+    } else {
+      const res = fn(args.join(' '));
+      if (res === '__CLEAR__') hist.innerHTML = '';
+      else if (res) {
+        const r = document.createElement('div');
+        r.className = 'line';
+        r.textContent = res;
+        hist.appendChild(r);
+      }
+    }
+    out.scrollTop = out.scrollHeight;
+  });
+}
+
+/* =========================================================
+   ИНИЦИАЛИЗАЦИЯ
+   ========================================================= */
+
+function renderAll() {
+  renderProgress();
+  renderProcesses();
+  renderTaskmgr();
+  renderThreads();
+  updateSimFps();
+  renderFS();
+  renderAllAnswerBlocks();
+  renderTest('theoryTest', 'Теория', '📚 Тест по теории ОС в играх');
+  renderTest('practiceTest', 'Практика', '🎮 Тест по практическим заданиям');
+}
+
+function initLogin() {
+  const modal = document.getElementById('loginModal');
+  const fio = document.getElementById('loginFio');
+  const grp = document.getElementById('loginGroup');
+  let last = null;
+  try { last = JSON.parse(localStorage.getItem(LAST_STUDENT_KEY) || 'null'); } catch {}
+  if (last) { fio.value = last.fio || ''; grp.value = last.group || ''; }
+  document.getElementById('loginBtn').onclick = () => {
+    const f = fio.value.trim();
+    if (f.length < 3) { alert('Введите ФИО'); return; }
+    state.studentName = f;
+    state.studentGroup = grp.value.trim();
+    saveState();
+    try { localStorage.setItem(LAST_STUDENT_KEY, JSON.stringify({ fio: f, group: state.studentGroup })); } catch {}
+    modal.classList.add('hidden');
+    renderAll();
+    toast(`Добро пожаловать, ${f.split(' ')[0]}! 🎮`, 'info');
+  };
+}
+
+function initStudentInfo() {
+  const n = document.getElementById('studentName');
+  const g = document.getElementById('studentGroup');
+  n.value = state.studentName || '';
+  g.value = state.studentGroup || '';
+  n.oninput = () => { state.studentName = n.value; saveState(); };
+  g.oninput = () => { state.studentGroup = g.value; saveState(); };
+}
+
+function applySettings() {
+  document.body.classList.toggle('light', settings.theme === 'light');
+  document.getElementById('setTheme').classList.toggle('on', settings.theme === 'light');
+  document.getElementById('setSound').classList.toggle('on', settings.sound);
+  document.getElementById('setConfetti').classList.toggle('on', settings.confetti);
+}
+
+function initSettings() {
+  document.getElementById('setTheme').onclick = () => { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; saveSettings(); applySettings(); };
+  document.getElementById('setSound').onclick = () => { settings.sound = !settings.sound; saveSettings(); applySettings(); };
+  document.getElementById('setConfetti').onclick = () => { settings.confetti = !settings.confetti; saveSettings(); applySettings(); };
+  document.getElementById('themeToggle').onclick = () => { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; saveSettings(); applySettings(); };
+}
+
+document.getElementById('answerModalClose').onclick = closeAnswerModal;
+document.getElementById('answerModal').addEventListener('click', e => {
+  if (e.target.id === 'answerModal') closeAnswerModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAnswerModal();
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.ctrlKey && e.key.toLowerCase() === 'p') { e.preventDefault(); exportPDF(); }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  initLogin();
+  initStudentInfo();
+  initSettings();
+  applySettings();
+
+  document.getElementById('procScene').onchange = (e) => {
+    currentProcScene = e.target.value;
+    selectedProcPid = null;
+    renderProcesses();
+  };
+  document.getElementById('procRefresh').onclick = () => renderProcesses();
+  document.getElementById('schedRun').onclick = runScheduler;
+  ['targetFps','renderCost','physicsCost','aiCost','audioCost','ioCost'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateFrameBudget);
+  });
+  document.getElementById('latencyCalc').onclick = calcLatency;
+  document.getElementById('cacheRequest').onclick = () => requestTexture();
+  document.getElementById('cacheAuto').onclick = runAutoCache;
+  document.getElementById('cacheClear').onclick = clearCache;
+
+  updateFrameBudget();
+  calcLatency();
+  initTaskmgr();
+  renderThreads();
+  updateSimFps();
+  initMemoryPanels();
+  renderCache();
+  renderFS();
+  initTerminal();
+
+  document.getElementById('exportPDF').onclick = exportPDF;
+  document.getElementById('exportCSV').onclick = exportCSV;
+  document.getElementById('exportJSON').onclick = exportJSON;
+  document.getElementById('importJSON').onclick = importJSON;
+  document.getElementById('resetAll').onclick = () => {
+    if (!confirm('Сбросить все ответы?')) return;
+    state = { ...defaultState, studentName: state.studentName, studentGroup: state.studentGroup };
+    saveState();
+    renderAll();
+    toast('Прогресс сброшен', 'info');
+  };
+
+  renderAll();
+});
+</script>
+</body>
+</html>
